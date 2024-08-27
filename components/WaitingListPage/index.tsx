@@ -9,21 +9,11 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors } from "../../constants/colors";
 
-const WaitingListPage: React.FC<{ onSelect: (item: any) => void }> = ({
-  onSelect,
-}) => {
+const WaitingListPage: React.FC<{
+  onSelect: (item: any) => void;
+  consultations: { id: number; date: string; time: string; name: string }[];
+}> = ({ onSelect, consultations }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  const consultations = [
-    { id: 1, date: "01/01/2001", time: "13:00", name: "João" },
-    { id: 2, date: "01/01/2001", time: "13:10", name: "Maria" },
-    { id: 3, date: "01/01/2001", time: "13:15", name: "Romeu" },
-    { id: 4, date: "01/01/2001", time: "13:20", name: "Julieta" },
-    { id: 5, date: "01/01/2001", time: "13:00", name: "João" },
-    { id: 6, date: "01/01/2001", time: "13:10", name: "Maria" },
-    { id: 7, date: "01/01/2001", time: "13:15", name: "Romeu" },
-    { id: 8, date: "01/01/2001", time: "13:20", name: "Julieta" },
-  ];
 
   const handleSelectConsultation = (index: number, item: any) => {
     setSelectedIndex(index);
@@ -60,7 +50,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.black,
   },
-
   content: {
     flex: 1,
     paddingTop: -20,
@@ -84,11 +73,6 @@ const styles = StyleSheet.create({
   consultationText: {
     color: colors.white,
     fontSize: 16,
-  },
-  text: {
-    color: colors.white,
-    fontSize: 20,
-    fontFamily: "PoppinsRegular",
   },
 });
 

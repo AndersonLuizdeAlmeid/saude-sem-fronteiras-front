@@ -6,15 +6,18 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
+  Text,
 } from "react-native";
 import { router } from "expo-router";
 import { colors } from "../../constants/colors";
 import Input from "../../components/Input";
-import Page from "../../components/Page";
 import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import SimpleModal from "../../components/Modal"; // Importe o modal personalizado
+import { apiPost } from "../../utils/api";
+import DateTimePickerModal from "react-native-modal-datetime-picker"; // Importar a biblioteca
 
 const AppointmentsDoctorPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -28,26 +31,52 @@ const AppointmentsDoctorPage: React.FC = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [language, setLanguage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   const handleBackPress = () => {
     router.replace("/");
   };
 
+  const sendToBackend = async () => {
+    try {
+      // setLoading(true);
+      // await apiPost("/Users", {
+      //   name,
+      //   cpf,
+      //   motherName,
+      //   dateOfBirth,
+      //   gender,
+      //   language,
+      // });
+      const cpf = "Jh";
+      router.replace({
+        pathname: "/register/address-registry",
+        params: {
+          cpf,
+        },
+      });
+    } catch (err: any) {
+      setErrorModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   async function handleAddressRegistry() {
-    // SÓ DESCOMENTAR
-    // if (
-    //   name.trim() &&
-    //   cpf.trim() &&
-    //   motherName.trim() &&
-    //   dateOfBirth.trim() &&
-    //   gender.trim() &&
-    //   language.trim()
-    // ) {
-    //   router.replace("/register/address-registry");
-    // } else {
-    //   setErrorModalVisible(true); // Exibe o modal de erro se algum campo não estiver preenchido
-    // }
-    router.replace("/register/address-registry");
+    if (
+      true
+      // name.trim() &&
+      // cpf.trim() &&
+      // motherName.trim() &&
+      // dateOfBirth.trim() &&
+      // gender.trim() &&
+      // language.trim()
+    ) {
+      await sendToBackend(); // Envia os dados para o backend antes de redirecionar
+    } else {
+      setErrorModalVisible(true); // Exibe o modal de erro se algum campo não estiver preenchido
+    }
   }
 
   const handleAuxiliaryModalPress = () => {
@@ -61,6 +90,16 @@ const AppointmentsDoctorPage: React.FC = () => {
   const handleSelectLabels = (labels: string[]) => {
     setSelectedLabels(labels);
     console.log("Labels selecionadas:", labels);
+  };
+
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+
+  const handleConfirm = (selectedDate: Date) => {
+    const formattedDate = selectedDate.toLocaleDateString(); // Formata a data conforme necessário
+    setDateOfBirth(formattedDate);
+    setDatePickerVisibility(false);
   };
 
   useEffect(() => {
@@ -117,7 +156,6 @@ const AppointmentsDoctorPage: React.FC = () => {
               onChangeText={(value) => {
                 setCpf(value);
               }}
-              secureTextEntry
               style={styles.input}
             />
             <Input
@@ -128,20 +166,16 @@ const AppointmentsDoctorPage: React.FC = () => {
               onChangeText={(value) => {
                 setMotherName(value);
               }}
-              secureTextEntry
               style={styles.input}
             />
-            <Input
-              label="Data de Nascimento"
-              autoCorrect={false}
-              placeholder="17/07/1997"
-              value={dateOfBirth}
-              onChangeText={(value) => {
-                setDateOfBirth(value);
-              }}
-              secureTextEntry
-              style={styles.input}
-            />
+            <TouchableOpacity onPress={showDatePicker}>
+              <Text style={styles.inputName}>Data de Nascimento</Text>
+              <View style={styles.inputData}>
+                <Text style={styles.inputText}>
+                  {dateOfBirth || "Aperte aqui para adicionar a data"}
+                </Text>
+              </View>
+            </TouchableOpacity>
             <Input
               label="Gênero"
               autoCorrect={false}
@@ -150,7 +184,6 @@ const AppointmentsDoctorPage: React.FC = () => {
               onChangeText={(value) => {
                 setGender(value);
               }}
-              secureTextEntry
               style={styles.input}
             />
             <Input
@@ -161,7 +194,6 @@ const AppointmentsDoctorPage: React.FC = () => {
               onChangeText={(value) => {
                 setLanguage(value);
               }}
-              secureTextEntry
               style={styles.input}
             />
             <Button onPress={handleAddressRegistry} style={styles.button}>
@@ -175,10 +207,16 @@ const AppointmentsDoctorPage: React.FC = () => {
         onClose={handleCloseModal}
         onSelect={handleSelectLabels}
       />
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={handleConfirm}
+        onCancel={() => setDatePickerVisibility(false)}
+      />
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Por favor, preencha todos os campos."
+        message="Algum campo não foi preenchido, ou foi preenchido de maneira incorreta."
       />
     </SafeAreaView>
   );
@@ -200,9 +238,25 @@ const styles = StyleSheet.create({
     alignSelf: "center", // Isso ajuda a centralizar
     padding: 10, // Ajuste de acordo com a necessidade
   },
+  inputData: {
+    width: 320,
+    marginBottom: 20,
+    padding: 10,
+    backgroundColor: colors.gray_2,
+    borderColor: colors.white,
+    borderWidth: 2,
+    borderRadius: 5,
+  },
   button: {
     marginTop: 20,
     width: 250,
+  },
+  inputText: {
+    color: colors.white,
+  },
+  inputName: {
+    color: colors.white,
+    paddingVertical: 5,
   },
 });
 

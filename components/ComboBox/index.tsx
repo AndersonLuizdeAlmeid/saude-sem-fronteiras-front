@@ -10,11 +10,18 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../constants/colors"; // Atualize o caminho conforme necessário
 
+interface ComboBoxItem {
+  id: number;
+  label: string;
+  comparativeId: number;
+}
+
 interface ComboBoxProps {
   label: string;
-  data: string[];
-  onSelect: (value: string) => void;
+  data: ComboBoxItem[];
+  onSelect: (value: ComboBoxItem) => void;
   placeholder: string;
+  value: string;
 }
 
 const ComboBox: React.FC<ComboBoxProps> = ({
@@ -22,12 +29,13 @@ const ComboBox: React.FC<ComboBoxProps> = ({
   data,
   onSelect,
   placeholder,
+  value,
 }) => {
   const [isModalVisible, setModalVisible] = useState(false);
-  const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  const [selectedValue, setSelectedValue] = useState<string | null>(value);
 
-  const handleSelectItem = (item: string) => {
-    setSelectedValue(item);
+  const handleSelectItem = (item: ComboBoxItem) => {
+    setSelectedValue(item.label);
     onSelect(item);
     setModalVisible(false);
   };
@@ -52,10 +60,9 @@ const ComboBox: React.FC<ComboBoxProps> = ({
         <TouchableOpacity
           style={styles.modalContainer}
           activeOpacity={1}
-          onPressOut={() => setModalVisible(false)} // Fecha o modal ao clicar fora
+          onPressOut={() => setModalVisible(false)}
         >
           <TouchableOpacity style={styles.modalContent} activeOpacity={1}>
-            {/* Isso impede que o clique no conteúdo do modal feche o modal */}
             <FlatList
               data={data}
               renderItem={({ item }) => (
@@ -63,10 +70,10 @@ const ComboBox: React.FC<ComboBoxProps> = ({
                   style={styles.modalItem}
                   onPress={() => handleSelectItem(item)}
                 >
-                  <Text style={styles.modalItemText}>{item}</Text>
+                  <Text style={styles.modalItemText}>{item.label}</Text>
                 </TouchableOpacity>
               )}
-              keyExtractor={(item) => item.toString()}
+              keyExtractor={(item) => item.id.toString()}
             />
           </TouchableOpacity>
         </TouchableOpacity>
@@ -82,13 +89,13 @@ const styles = StyleSheet.create({
   label: {
     color: colors.white,
     marginBottom: 5,
-    fontSize: 16,
+    fontSize: 14,
     width: 320,
     borderColor: colors.white,
   },
   input: {
     backgroundColor: colors.gray_2,
-    padding: 15,
+    padding: 10,
     borderRadius: 5,
     borderColor: colors.white,
     borderWidth: 2,
@@ -98,7 +105,7 @@ const styles = StyleSheet.create({
   },
   inputText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: 14,
   },
   modalContainer: {
     flex: 1,
@@ -119,7 +126,7 @@ const styles = StyleSheet.create({
   },
   modalItemText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: 14,
   },
 });
 

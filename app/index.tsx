@@ -35,20 +35,7 @@ export default function LoginPage() {
   }
 
   async function handleRegistry() {
-    try {
-      // setLoading(true);
-      // const response = await apiPost<string>("/registry", {
-      //   email,
-      //   password,
-      // });
-
-      //await AsyncStorage.setItem(STORAGE_TOKEN, response.data);
-      router.push("/register");
-    } catch (err: any) {
-      setErrorMessage(err.request.response);
-    } finally {
-      setLoading(false);
-    }
+    router.push("/register");
   }
 
   async function handleForgotPassword() {
