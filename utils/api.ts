@@ -20,3 +20,11 @@ export async function apiPost<T>(
     headers: { Authorization: token },
   });
 }
+
+export async function apiDelete<T>(url: string): Promise<AxiosResponse<T>> {
+  const token = await AsyncStorage.getItem(STORAGE_TOKEN);
+
+  return await axios.delete<T>(`http://192.168.0.103:5000${url}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

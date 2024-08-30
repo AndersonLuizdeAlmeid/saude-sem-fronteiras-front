@@ -8,7 +8,7 @@ import CardIcon from "../../components/CardIcon";
 import WaitingListPage from "../../components/WaitingListPage";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
-import { apiGet, apiPost } from "../../utils/api";
+import { apiDelete, apiGet, apiPost } from "../../utils/api";
 
 const PhonesRegistryPage: React.FC = () => {
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
@@ -17,28 +17,12 @@ const PhonesRegistryPage: React.FC = () => {
   const [opacity] = useState(new Animated.Value(0));
   const [number, setNumber] = useState("");
   const [consultations, setConsultations] = useState<
-    { id: number; date: string; time: string; name: string }[]
+    { id: number; data: string }[]
   >([]);
 
   const userId = 1; // Substitua pelo ID do usuário real
 
-  const fetchConsultations = async (userId: number) => {
-    try {
-      console.log(`Fetching consultations from URL: /Phone/${userId}`);
-      const response = await apiGet(`/Phone/${userId}`);
-      if (response && Array.isArray(response.data)) {
-        setConsultations(response.data);
-      } else {
-        console.error("Formato de resposta inesperado:", response);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar consultas:", error);
-    }
-  };
-
   useEffect(() => {
-    fetchConsultations(1);
-
     Animated.parallel([
       Animated.spring(offset.y, {
         toValue: 0,
@@ -58,12 +42,58 @@ const PhonesRegistryPage: React.FC = () => {
     router.replace("/register/address-registry");
   };
 
-  const handleAuxiliaryModalPress = () => {
-    router.replace("/register/doctor-patient-register");
-  };
+  const handleAuxiliaryModalPress = () => {};
 
   const handleSelectConsultation = (consultation: any) => {
     setSelectedConsultation(consultation);
+  };
+
+  const getPhonesById = async () => {
+    try {
+      const response = await apiGet(`/Phone/${userId}`);
+      if (response && Array.isArray(response.data)) {
+        // Mapear os dados para a estrutura esperada
+        const formattedConsultations = response.data.map((item: any) => ({
+          id: item.id,
+          data: item.number, // ou use uma propriedade que faça sentido
+        }));
+        setConsultations(formattedConsultations);
+      } else {
+        console.error("Formato de resposta inesperado:", response);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar consultas:", error);
+    }
+  };
+
+  const handleDeletetShift = async () => {
+    if (selectedConsultation && selectedConsultation.id) {
+      try {
+        await apiDelete(`/Phone/${selectedConsultation.id}`);
+        const updatedConsultations = consultations.filter(
+          (consultation) => consultation.id !== selectedConsultation.id
+        );
+        setConsultations(updatedConsultations);
+
+        if (updatedConsultations.length > 0) {
+          // Se houver itens restantes, selecione o próximo item
+          const nextIndex =
+            (consultations.findIndex((c) => c.id === selectedConsultation.id) +
+              1) %
+            updatedConsultations.length;
+          setSelectedConsultation(updatedConsultations[nextIndex]);
+        } else {
+          // Se não houver itens restantes, desmarque a seleção
+          setSelectedConsultation(null);
+        }
+
+        getPhonesById(); // Atualiza a lista de telefones
+      } catch (error) {
+        console.error("Erro ao deletar consulta:", error);
+      }
+    } else {
+      console.log("Nenhuma consulta selecionada para deletar");
+    }
   };
 
   const handleSavetShift = async () => {
@@ -72,11 +102,19 @@ const PhonesRegistryPage: React.FC = () => {
         number,
         userId,
       });
-      //router.replace("/register/doctor-patient-register");
+      getPhonesById();
     } else {
-      setErrorModalVisible(true); // Exibe o modal de erro se o campo "Telefone" estiver vazio
+      setErrorModalVisible(true);
     }
   };
+
+  const handleFinishtShift = async () => {
+    router.replace("/register/doctor-patient-register");
+  };
+
+  useEffect(() => {
+    getPhonesById();
+  }, []);
 
   const items = [
     {
@@ -124,9 +162,14 @@ const PhonesRegistryPage: React.FC = () => {
               onSelect={handleSelectConsultation}
               consultations={consultations} // Passa os dados para o WaitingListPage
             />
-            {/* Botão "Salvar" no final */}
+            <Button onPress={handleDeletetShift} style={styles.button}>
+              EXCLUIR
+            </Button>
             <Button onPress={handleSavetShift} style={styles.button}>
               SALVAR
+            </Button>
+            <Button onPress={handleFinishtShift} style={styles.button}>
+              CONCLUIR
             </Button>
           </ScrollView>
         </View>

@@ -11,7 +11,7 @@ import { colors } from "../../constants/colors";
 
 const WaitingListPage: React.FC<{
   onSelect: (item: any) => void;
-  consultations: { id: number; date: string; time: string; name: string }[];
+  consultations: { id: number; data: string }[];
 }> = ({ onSelect, consultations }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -35,9 +35,7 @@ const WaitingListPage: React.FC<{
             ]}
             onPress={() => handleSelectConsultation(index, item)}
           >
-            <Text style={styles.consultationText}>
-              {item.date} - {item.time} - {item.name}
-            </Text>
+            <Text style={styles.consultationText}>{item.data}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -51,7 +49,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.black,
   },
   content: {
-    flex: 1,
     paddingTop: -20,
   },
   consultationItem: {

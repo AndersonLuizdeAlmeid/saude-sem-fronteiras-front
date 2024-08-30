@@ -16,7 +16,7 @@ import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import SimpleModal from "../../components/Modal"; // Importe o modal personalizado
-import { apiPost } from "../../utils/api";
+import { apiGet, apiPost } from "../../utils/api";
 import DateTimePickerModal from "react-native-modal-datetime-picker"; // Importar a biblioteca
 
 const AppointmentsDoctorPage: React.FC = () => {
@@ -31,6 +31,7 @@ const AppointmentsDoctorPage: React.FC = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [language, setLanguage] = useState("");
+  const [id, setId] = useState("");
   const [loading, setLoading] = useState(false);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
@@ -53,7 +54,7 @@ const AppointmentsDoctorPage: React.FC = () => {
       router.replace({
         pathname: "/register/address-registry",
         params: {
-          cpf,
+          id,
         },
       });
     } catch (err: any) {
