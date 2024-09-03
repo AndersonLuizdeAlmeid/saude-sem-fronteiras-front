@@ -18,7 +18,7 @@ import SimpleModal from "../../components/Modal";
 import { useLocalSearchParams } from "expo-router";
 import { apiGet, apiPost } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_CREDENTIALS } from "../../constants/storage";
+import { STORAGE_CREDENTIALS, STORAGE_USER } from "../../constants/storage";
 import { Credentials } from "../../domain/Credentials/credentials";
 
 const CredentialsRegistryPage: React.FC = () => {
@@ -73,6 +73,15 @@ const CredentialsRegistryPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    try {
+      AsyncStorage.removeItem(STORAGE_USER);
+      console.log("ID do usuário removido com sucesso!");
+    } catch (error) {
+      console.error("Erro ao remover o ID do usuário:", error);
+    }
+  });
 
   useEffect(() => {
     Animated.parallel([

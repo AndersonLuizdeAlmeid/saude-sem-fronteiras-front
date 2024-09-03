@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import { colors } from "../../constants/colors";
 import CardIcon from "../CardIcon";
 import Button from "../Button";
+import { downloadAndOpenFile } from "../../utils/dowloadFile";
 
 interface SelectionModalProps {
   visible: boolean;
@@ -34,14 +35,20 @@ const items = [
     text: "Tutoriais",
     icon: "globe",
     onPress: () => {
-      router.push("");
+      downloadAndOpenFile(
+        "https://drive.google.com/uc?export=download&id=1ewF86gZGLLSYNOUKJNoveB74pzjuBnoZ",
+        "Tutoriais.pdf"
+      );
     },
   },
   {
     text: "Sobre",
     icon: "toolbox",
     onPress: () => {
-      router.push("");
+      downloadAndOpenFile(
+        "https://drive.google.com/uc?export=download&id=1SU1nP9IaPy-sdzmUEvzGsGOONdku1b33",
+        "Sobre.pdf"
+      );
     },
   },
 ];
@@ -50,8 +57,8 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
   visible,
   onClose,
 }) => {
-  const handleItemPress = (page: string) => {
-    router.push(page);
+  const handleItemPress = (item: (typeof items)[number]) => {
+    item.onPress();
     onClose();
   };
 
@@ -69,9 +76,11 @@ const SelectionModal: React.FC<SelectionModalProps> = ({
       >
         <TouchableOpacity style={styles.modalContainer} activeOpacity={1}>
           <ScrollView>
-            {items?.map((i) => (
-              <React.Fragment key={i.text}>
-                <CardIcon {...i} />
+            {items.map((item) => (
+              <React.Fragment key={item.text}>
+                <TouchableOpacity onPress={() => handleItemPress(item)}>
+                  <CardIcon {...item} />
+                </TouchableOpacity>
                 <View style={styles.separator} />
               </React.Fragment>
             ))}
@@ -98,15 +107,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     alignItems: "center",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: colors.black,
-  },
-  content: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
   separator: { height: 10 },
 });

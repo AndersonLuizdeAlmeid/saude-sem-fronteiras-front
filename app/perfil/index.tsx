@@ -36,6 +36,7 @@ const PatientRegistryPage: React.FC = () => {
   const [emergencyNumber, seteEmergencyNumber] = useState("");
   const [userId, setUserId] = useState<number>(0);
   const [name, setName] = useState<string>("");
+  const [erro, setErro] = useState<number>(0);
   const [cpf, setCpf] = useState("");
   const [motherName, setMotherName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -80,6 +81,17 @@ const PatientRegistryPage: React.FC = () => {
     }
   }
 
+  const handleErrorAndRedirect = () => {
+    if (erro === 1) {
+      setErro(0); // Limpa o erro
+      router.replace("/"); // Redireciona para a página inicial
+    }
+  };
+
+  useEffect(() => {
+    handleErrorAndRedirect();
+  }, [erro]);
+
   async function handleAddressRegistry() {
     if (
       name.trim() &&
@@ -121,6 +133,7 @@ const PatientRegistryPage: React.FC = () => {
           setUserId(user.id);
           setName(user.name);
         } else {
+          setErro(1); // Define o erro se o usuário não for encontrado
           console.log("Nenhum valor encontrado no AsyncStorage");
         }
       } catch (error) {
