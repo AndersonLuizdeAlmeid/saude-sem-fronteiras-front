@@ -19,13 +19,13 @@ export default function LoginPage() {
 
   async function handleLogin() {
     try {
-      // setLoading(true);
-      // const response = await apiPost<string>("/Authentication", {
-      //   email,
-      //   password,
-      // });
+      setLoading(true);
+      const response = await apiPost<string>("/Authentication", {
+        email,
+        password,
+      });
 
-      //await AsyncStorage.setItem(STORAGE_TOKEN, response.data);
+      await AsyncStorage.setItem(STORAGE_TOKEN, response.data);
       router.replace("/home-patient");
     } catch (err: any) {
       setErrorMessage(err.request.response);
@@ -35,7 +35,7 @@ export default function LoginPage() {
   }
 
   async function handleRegistry() {
-    router.push("/register");
+    router.replace("/register/credentials-registry");
   }
 
   async function handleForgotPassword() {
@@ -55,18 +55,6 @@ export default function LoginPage() {
     }
   }
 
-  async function validateToken() {
-    try {
-      await apiGet("/Authentication");
-
-      router.replace("/home");
-    } catch (err: any) {
-      await AsyncStorage.removeItem(STORAGE_TOKEN);
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
     Animated.parallel([
       Animated.spring(offset.y, {
@@ -81,18 +69,7 @@ export default function LoginPage() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
-
-  useEffect(() => {
-    AsyncStorage.getItem(STORAGE_TOKEN).then((token) => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      validateToken();
-      setLoading(false);
-    });
+    setLoading(false);
   }, []);
 
   useEffect(() => {

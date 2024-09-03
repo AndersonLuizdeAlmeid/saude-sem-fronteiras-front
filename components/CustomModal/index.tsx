@@ -27,7 +27,7 @@ const items = [
     text: "Perfil",
     icon: "user",
     onPress: () => {
-      router.push("/home-doctor/emergency-appointment");
+      router.push("/../../perfil");
     },
   },
   {

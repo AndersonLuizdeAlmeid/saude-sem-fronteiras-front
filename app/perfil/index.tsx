@@ -7,6 +7,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
+  Text,
 } from "react-native";
 import { router } from "expo-router";
 import { colors } from "../../constants/colors";
@@ -34,6 +36,13 @@ const PatientRegistryPage: React.FC = () => {
   const [emergencyNumber, seteEmergencyNumber] = useState("");
   const [userId, setUserId] = useState<number>(0);
   const [name, setName] = useState<string>("");
+  const [cpf, setCpf] = useState("");
+  const [motherName, setMotherName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState("");
+  const [language, setLanguage] = useState("");
+  const [credentialsId, setCredentialsId] = useState<number>(0);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleBackPress = () => {
@@ -43,7 +52,7 @@ const PatientRegistryPage: React.FC = () => {
   async function handlePatientRegistry() {
     try {
       setLoading(true);
-      await apiPost("/Patient", {
+      await apiPut("/Patient", {
         bloodType,
         allergies,
         medicalCondition,
@@ -52,6 +61,17 @@ const PatientRegistryPage: React.FC = () => {
         emergencyNumber,
         userId,
       });
+
+      await apiPost("/Users", {
+        name,
+        cpf,
+        motherName,
+        dateOfBirth,
+        gender,
+        language,
+        credentialsId,
+      });
+
       router.replace("/home-patient");
     } catch (err: any) {
       setErrorModalVisible(true);
@@ -59,6 +79,25 @@ const PatientRegistryPage: React.FC = () => {
       setLoading(false);
     }
   }
+
+  async function handleAddressRegistry() {
+    if (
+      name.trim() &&
+      cpf.trim() &&
+      motherName.trim() &&
+      dateOfBirth.trim() &&
+      gender.trim() &&
+      language.trim()
+    ) {
+      await handlePatientRegistry(); // Envia os dados para o backend antes de redirecionar
+    } else {
+      setErrorModalVisible(true); // Exibe o modal de erro se algum campo não estiver preenchido
+    }
+  }
+
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
 
   const handleAuxiliaryModalPress = () => {
     setModalVisible(true);
@@ -139,6 +178,74 @@ const PatientRegistryPage: React.FC = () => {
                 autoCapitalize="none"
               />
               <Input
+                label="Nome"
+                autoCorrect={false}
+                placeholder="fulano de tal"
+                value={name}
+                onChangeText={(value) => {
+                  setName(value);
+                }}
+                style={styles.input}
+                autoCapitalize="none"
+              />
+              <Input
+                label="CPF"
+                autoCorrect={false}
+                placeholder="036.745.720-28"
+                value={cpf}
+                onChangeText={(value) => {
+                  setCpf(value);
+                }}
+                style={styles.input}
+              />
+              <Input
+                label="Nome da Mãe"
+                autoCorrect={false}
+                placeholder="Fulana de tal"
+                value={motherName}
+                onChangeText={(value) => {
+                  setMotherName(value);
+                }}
+                style={styles.input}
+              />
+              <TouchableOpacity onPress={showDatePicker}>
+                <Text style={styles.inputName}>Data de Nascimento</Text>
+                <View style={styles.inputData}>
+                  <Text style={styles.inputText}>
+                    {dateOfBirth || "Aperte aqui para adicionar a data"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <Input
+                label="Gênero"
+                autoCorrect={false}
+                placeholder="masculino"
+                value={gender}
+                onChangeText={(value) => {
+                  setGender(value);
+                }}
+                style={styles.input}
+              />
+              <Input
+                label="Idioma"
+                autoCorrect={false}
+                placeholder="Português"
+                value={language}
+                onChangeText={(value) => {
+                  setLanguage(value);
+                }}
+                style={styles.input}
+              />
+              <Input
+                label=""
+                autoCorrect={false}
+                placeholder=""
+                onChangeText={(value) => {
+                  setBloodType(value);
+                }}
+                style={styles.customLine}
+              />
+              <Input
                 label="Tipo Sanguíneo"
                 autoCorrect={false}
                 placeholder="O+"
@@ -198,6 +305,15 @@ const PatientRegistryPage: React.FC = () => {
                 }}
                 style={styles.input}
               />
+              <Input
+                label=""
+                autoCorrect={false}
+                placeholder=""
+                onChangeText={(value) => {
+                  setBloodType(value);
+                }}
+                style={styles.customLine}
+              />
               <Button onPress={handlePatientRegistry} style={styles.button}>
                 CADASTRAR
               </Button>
@@ -247,6 +363,42 @@ const styles = StyleSheet.create({
     marginTop: 20,
     width: 250,
   },
+  inputData: {
+    width: 320,
+    marginBottom: 20,
+    padding: 10,
+    backgroundColor: colors.gray_2,
+    borderColor: colors.white,
+    borderWidth: 2,
+    borderRadius: 5,
+  },
+  inputText: {
+    color: colors.white,
+  },
+  inputName: {
+    color: colors.white,
+    paddingVertical: 5,
+  },
+  customLine: {
+    width: 320,
+    height: 2,
+    backgroundColor: "black",
+    marginVertical: 35,
+  },
 });
 
 export default PatientRegistryPage;
+function apiPut(
+  arg0: string,
+  arg1: {
+    bloodType: string;
+    allergies: string;
+    medicalCondition: string;
+    previousSurgeries: string;
+    medicines: string;
+    emergencyNumber: string;
+    userId: number;
+  }
+) {
+  throw new Error("Function not implemented.");
+}

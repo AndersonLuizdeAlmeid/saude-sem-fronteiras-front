@@ -18,8 +18,11 @@ import SelectionModal from "../../components/CustomModal";
 import SimpleModal from "../../components/Modal"; // Importe o modal personalizado
 import { apiGet, apiPost } from "../../utils/api";
 import DateTimePickerModal from "react-native-modal-datetime-picker"; // Importar a biblioteca
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { STORAGE_CREDENTIALS, STORAGE_USER } from "../../constants/storage";
+import { Credentials } from "../../domain/Credentials/credentials";
 
-const AppointmentsDoctorPage: React.FC = () => {
+const RegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false); // Estado para controlar a visibilidade do modal de erro
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
@@ -31,32 +34,34 @@ const AppointmentsDoctorPage: React.FC = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [language, setLanguage] = useState("");
-  const [id, setId] = useState("");
+  const [credentialsId, setCredentialsId] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   const handleBackPress = () => {
-    router.replace("/");
+    router.replace("/register/credentials-registry");
   };
 
   const sendToBackend = async () => {
+    console.log(credentialsId);
     try {
-      // setLoading(true);
-      // await apiPost("/Users", {
-      //   name,
-      //   cpf,
-      //   motherName,
-      //   dateOfBirth,
-      //   gender,
-      //   language,
-      // });
-      const cpf = "Jh";
-      router.replace({
-        pathname: "/register/address-registry",
-        params: {
-          id,
-        },
+      setLoading(true);
+      await apiPost("/Users", {
+        name,
+        cpf,
+        motherName,
+        dateOfBirth,
+        gender,
+        language,
+        credentialsId,
       });
+      const response = await apiGet<Credentials>(
+        `/Users/credentialsId/${credentialsId}`
+      );
+      console.log(response.data);
+      AsyncStorage.setItem(STORAGE_USER, JSON.stringify(response.data)).then(
+        () => router.push("/register/address-registry")
+      );
     } catch (err: any) {
       setErrorModalVisible(true);
     } finally {
@@ -64,15 +69,31 @@ const AppointmentsDoctorPage: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const fetchCredentials = async () => {
+      try {
+        const value = await AsyncStorage.getItem(STORAGE_CREDENTIALS);
+        if (value) {
+          const credentials: Credentials = JSON.parse(value);
+          setCredentialsId(credentials.id);
+        } else {
+          console.log("Nenhum valor encontrado no AsyncStorage");
+        }
+      } catch (error) {
+        console.error("Erro ao recuperar ou parsear do AsyncStorage:", error);
+      }
+    };
+    fetchCredentials();
+  }, []);
+
   async function handleAddressRegistry() {
     if (
-      true
-      // name.trim() &&
-      // cpf.trim() &&
-      // motherName.trim() &&
-      // dateOfBirth.trim() &&
-      // gender.trim() &&
-      // language.trim()
+      name.trim() &&
+      cpf.trim() &&
+      motherName.trim() &&
+      dateOfBirth.trim() &&
+      gender.trim() &&
+      language.trim()
     ) {
       await sendToBackend(); // Envia os dados para o backend antes de redirecionar
     } else {
@@ -261,4 +282,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AppointmentsDoctorPage;
+export default RegistryPage;

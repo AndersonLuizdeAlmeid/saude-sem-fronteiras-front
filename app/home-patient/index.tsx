@@ -8,6 +8,7 @@ import React, { useState } from "react";
 import Page from "../../components/Page";
 import HeaderPage from "../../components/HeaderPage";
 import { colors } from "../../constants/colors";
+import SelectionModal from "../../components/CustomModal";
 
 export default function HomePatientPage() {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -18,6 +19,14 @@ export default function HomePatientPage() {
 
   const handleAuxiliaryModalPress = () => {
     setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleSelectLabels = (labels: string[]) => {
+    console.log("Labels selecionadas:", labels);
   };
 
   const items = [
@@ -69,6 +78,11 @@ export default function HomePatientPage() {
           ))}
         </ScrollView>
       </View>
+      <SelectionModal
+        visible={isModalVisible}
+        onClose={handleCloseModal}
+        onSelect={handleSelectLabels}
+      />
     </SafeAreaView>
   );
 }

@@ -16,6 +16,11 @@ import Input from "../../components/Input";
 import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
+import { STORAGE_USER } from "../../constants/storage";
+import { User } from "../../domain/User/user";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { apiPost } from "../../utils/api";
+import SimpleModal from "../../components/Modal";
 
 const daysOfWeek = [
   { id: 0, label: "D", value: "Sunday" },
@@ -29,6 +34,7 @@ const daysOfWeek = [
 
 const DoctorRegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
+  const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
@@ -38,14 +44,37 @@ const DoctorRegistryPage: React.FC = () => {
   const [initialTimeStart, setInitialTimeStart] = useState("");
   const [finalTimeStart, setFinalTimeStart] = useState("");
   const [consultationPrice, setConsultationPrice] = useState("");
-  const name = "Anderson Luiz de Almeida";
+  const [userId, setUserId] = useState<number>(0);
+  const [name, setName] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
   const handleBackPress = () => {
     router.replace("/register/doctor-patient-register");
   };
 
   async function handleDoctorRegistry() {
-    router.replace("/home-doctor");
+    try {
+      console.log(specialty);
+      console.log(registerNumber);
+      console.log(initialTimeStart);
+      console.log(finalTimeStart);
+      console.log(consultationPrice);
+      console.log(userId);
+      setLoading(true);
+      await apiPost("/Doctor", {
+        specialty,
+        registerNumber,
+        initialTimeStart,
+        finalTimeStart,
+        consultationPrice,
+        userId,
+      });
+      router.replace("/home-doctor");
+    } catch (err: any) {
+      setErrorModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const handleDaySelection = (id: number) => {
@@ -68,6 +97,25 @@ const DoctorRegistryPage: React.FC = () => {
     setSelectedLabels(labels);
     console.log("Labels selecionadas:", labels);
   };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const value = await AsyncStorage.getItem(STORAGE_USER);
+        if (value) {
+          const user: User = JSON.parse(value);
+          setUserId(user.id);
+          setName(user.name);
+        } else {
+          console.log("Nenhum valor encontrado no AsyncStorage");
+        }
+      } catch (error) {
+        console.error("Erro ao recuperar ou parsear do AsyncStorage:", error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -120,7 +168,6 @@ const DoctorRegistryPage: React.FC = () => {
                 onChangeText={(value) => {
                   setSpecialty(value);
                 }}
-                secureTextEntry
                 style={styles.input}
               />
               <Input
@@ -131,7 +178,6 @@ const DoctorRegistryPage: React.FC = () => {
                 onChangeText={(value) => {
                   setRegisterNumber(value);
                 }}
-                secureTextEntry
                 style={styles.input}
               />
               <Input
@@ -142,7 +188,6 @@ const DoctorRegistryPage: React.FC = () => {
                 onChangeText={(value) => {
                   setInitialTimeStart(value);
                 }}
-                secureTextEntry
                 style={styles.input}
               />
               <Input
@@ -153,7 +198,6 @@ const DoctorRegistryPage: React.FC = () => {
                 onChangeText={(value) => {
                   setFinalTimeStart(value);
                 }}
-                secureTextEntry
                 style={styles.input}
               />
               <View style={styles.daysOfWeekContainer}>
@@ -184,7 +228,6 @@ const DoctorRegistryPage: React.FC = () => {
                 onChangeText={(value) => {
                   setConsultationPrice(value);
                 }}
-                secureTextEntry
                 style={styles.input}
               />
               <Button onPress={handleDoctorRegistry} style={styles.button}>
@@ -198,6 +241,11 @@ const DoctorRegistryPage: React.FC = () => {
         visible={isModalVisible}
         onClose={handleCloseModal}
         onSelect={handleSelectLabels}
+      />
+      <SimpleModal
+        visible={isErrorModalVisible}
+        onClose={() => setErrorModalVisible(false)}
+        message="Por favor, preencha todos os campos."
       />
     </SafeAreaView>
   );

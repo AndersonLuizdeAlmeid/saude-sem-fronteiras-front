@@ -18,10 +18,15 @@ import SimpleModal from "../../components/Modal";
 import { useLocalSearchParams } from "expo-router";
 import ComboBox from "../../components/ComboBox";
 import { apiGet, apiPost } from "../../utils/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { STORAGE_CREDENTIALS, STORAGE_USER } from "../../constants/storage";
+import * as credentials from "../../domain/Credentials/credentials";
+import { User } from "../../domain/User/user";
 
 const AddressRegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
+  const [userId, setUserId] = useState<number>(0);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
   const { cpf } = useLocalSearchParams();
@@ -79,23 +84,20 @@ const AddressRegistryPage: React.FC = () => {
 
   const handleAddressRegistry = async () => {
     try {
-      // console.log(city);
-      // let cityId = city?.id;
-      // setLoading(true);
-      // await apiPost("/Address", {
-      //   district,
-      //   street,
-      //   number,
-      //   complement,
-      //   cityId,
-      //   cpf,
-      // });
+      let cityId = city?.id;
+      console.log(city);
+      setLoading(true);
+      await apiPost("/Address", {
+        district,
+        street,
+        number,
+        complement,
+        cityId,
+        userId,
+      });
 
       router.replace({
         pathname: "/register/phones-registry",
-        params: {
-          cpf,
-        },
       });
     } catch (err: any) {
       setErrorModalVisible(true);
@@ -103,6 +105,25 @@ const AddressRegistryPage: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const value = await AsyncStorage.getItem(STORAGE_USER);
+        if (value) {
+          const user: User = JSON.parse(value);
+          setUserId(user.id);
+        } else {
+          console.log("Nenhum valor encontrado no AsyncStorage");
+        }
+      } catch (error) {
+        console.error("Erro ao recuperar ou parsear do AsyncStorage:", error);
+      }
+    };
+
+    fetchUser();
+    console.log(userId);
+  }, []);
 
   useEffect(() => {
     const loadCountries = async () => {

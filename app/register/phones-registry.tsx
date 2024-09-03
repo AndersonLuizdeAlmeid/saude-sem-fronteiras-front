@@ -9,6 +9,9 @@ import WaitingListPage from "../../components/WaitingListPage";
 import Button from "../../components/Button";
 import Input from "../../components/Input";
 import { apiDelete, apiGet, apiPost } from "../../utils/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { STORAGE_USER } from "../../constants/storage";
+import { User } from "../../domain/User/user";
 
 const PhonesRegistryPage: React.FC = () => {
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
@@ -16,11 +19,10 @@ const PhonesRegistryPage: React.FC = () => {
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
   const [number, setNumber] = useState("");
+  const [userId, setUserId] = useState<number>(0);
   const [consultations, setConsultations] = useState<
     { id: number; data: string }[]
   >([]);
-
-  const userId = 1; // Substitua pelo ID do usuário real
 
   useEffect(() => {
     Animated.parallel([
@@ -36,6 +38,7 @@ const PhonesRegistryPage: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
+    console.log(userId);
   }, []);
 
   const handleBackPress = () => {
@@ -47,6 +50,24 @@ const PhonesRegistryPage: React.FC = () => {
   const handleSelectConsultation = (consultation: any) => {
     setSelectedConsultation(consultation);
   };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const value = await AsyncStorage.getItem(STORAGE_USER);
+        if (value) {
+          const user: User = JSON.parse(value);
+          setUserId(user.id);
+        } else {
+          console.log("Nenhum valor encontrado no AsyncStorage");
+        }
+      } catch (error) {
+        console.error("Erro ao recuperar ou parsear do AsyncStorage:", error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const getPhonesById = async () => {
     try {
@@ -103,6 +124,7 @@ const PhonesRegistryPage: React.FC = () => {
         userId,
       });
       getPhonesById();
+      setNumber("");
     } else {
       setErrorModalVisible(true);
     }
