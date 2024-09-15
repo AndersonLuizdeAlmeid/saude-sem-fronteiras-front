@@ -15,24 +15,26 @@ import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import SimpleModal from "../../components/Modal";
-import { useLocalSearchParams } from "expo-router";
-import { apiGet, apiPost } from "../../utils/api";
+import { apiGet, apiPost, apiPut } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_CREDENTIALS, STORAGE_USER } from "../../constants/storage";
+import {
+  STORAGE_CREDENTIALS,
+  STORAGE_EMAIL,
+  STORAGE_USER,
+} from "../../constants/storage";
 import { Credentials } from "../../domain/Credentials/credentials";
 
-const CredentialsRegistryPage: React.FC = () => {
+const NewPasswordPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
-  const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [confirmedPassword, setConfirmedPassword] = useState("");
 
   const handleBackPress = () => {
-    router.replace("/");
+    router.back();
   };
 
   const handleAuxiliaryModalPress = () => {
@@ -47,39 +49,55 @@ const CredentialsRegistryPage: React.FC = () => {
     console.log("Labels selecionadas:", labels);
   };
 
-  const handleRegistry = async () => {
+  const handleAddressRegistry = async () => {
     try {
-      if (password === passwordConfirmation) {
+      if (password === confirmedPassword) {
         setLoading(true);
-        await apiPost("/Credentials", { email, password });
+
+        const email = await AsyncStorage.getItem(STORAGE_EMAIL);
+        console.log(email);
         console.log(password);
-        console.log(passwordConfirmation);
+        await apiPut("/Credentials/Password", {
+          email,
+          password,
+        });
 
         const response = await apiGet<Credentials>(
           `/Credentials/${email}/${password}`
         );
-        console.log(response);
+
         AsyncStorage.setItem(
           STORAGE_CREDENTIALS,
           JSON.stringify(response.data)
-        ).then(() => router.push("/register"));
+        );
+
+        const userResponse = await apiGet<Credentials>(
+          `/Users/credentialsId/${response.data.id}`
+        );
+
+        AsyncStorage.setItem(STORAGE_USER, JSON.stringify(userResponse.data));
+
+        const userOrDoctor = await apiGet<number>(
+          `/Users/id/${userResponse.data.id}`
+        );
+
+        if (userOrDoctor.data === 1) {
+          router.replace("/home-doctor");
+        } else if (userOrDoctor.data === 2) {
+          router.replace("/home-patient");
+        } else {
+          setErrorModalVisible(true);
+        }
       } else {
         setErrorModalVisible(true);
       }
     } catch (err: any) {
+      console.log(err);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    try {
-      AsyncStorage.removeItem(STORAGE_USER);
-    } catch (error) {
-      console.error("Erro ao remover o ID do usuário:", error);
-    }
-  });
 
   useEffect(() => {
     Animated.parallel([
@@ -118,33 +136,29 @@ const CredentialsRegistryPage: React.FC = () => {
           >
             <View style={styles.formContainer}>
               <Input
-                label="E-mail"
+                label="Informe a nova senha"
                 autoCorrect={false}
-                placeholder="exemplo@exemplo.com"
-                value={email}
-                onChangeText={(value) => setEmail(value)}
-                style={styles.input}
-              />
-              <Input
-                label="Senha"
-                autoCorrect={false}
-                placeholder="********"
-                secureTextEntry
+                placeholder="*****"
                 value={password}
                 onChangeText={(value) => setPassword(value)}
+                secureTextEntry
                 style={styles.input}
               />
               <Input
-                label="Confirmação de senha"
+                label="Confirme a nova senha"
                 autoCorrect={false}
-                placeholder="********"
+                placeholder="*****"
+                value={confirmedPassword}
+                onChangeText={(value) => setConfirmedPassword(value)}
                 secureTextEntry
-                value={passwordConfirmation}
-                onChangeText={(value) => setPasswordConfirmation(value)}
                 style={styles.input}
               />
-              <Button onPress={handleRegistry} style={styles.button}>
-                PRÓXIMO
+              <Button
+                onPress={handleAddressRegistry}
+                loading={loading}
+                style={styles.button}
+              >
+                CONCLUIR
               </Button>
             </View>
           </Animated.View>
@@ -158,7 +172,7 @@ const CredentialsRegistryPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Senhas não estão iguais."
+        message="As senhas não são iguais."
       />
     </SafeAreaView>
   );
@@ -187,4 +201,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CredentialsRegistryPage;
+export default NewPasswordPage;

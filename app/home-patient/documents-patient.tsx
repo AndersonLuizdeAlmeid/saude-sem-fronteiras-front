@@ -37,7 +37,7 @@ const DocumentsPatientPage: React.FC = () => {
   const [messageModal, setMessageModal] = useState<string>("");
 
   const handleBackPress = () => {
-    router.replace("/home-patient/appointments");
+    router.back();
   };
 
   const handleAuxiliaryModalPress = () => {

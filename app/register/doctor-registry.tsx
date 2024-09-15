@@ -16,11 +16,12 @@ import Input from "../../components/Input";
 import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
-import { STORAGE_USER } from "../../constants/storage";
+import { STORAGE_DOCTOR, STORAGE_USER } from "../../constants/storage";
 import { User } from "../../domain/User/user";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { apiPost } from "../../utils/api";
+import { apiGet, apiPost } from "../../utils/api";
 import SimpleModal from "../../components/Modal";
+import { Doctor } from "../../domain/Doctor/doctor";
 
 const daysOfWeek = [
   { id: 0, label: "D", value: "Sunday" },
@@ -39,43 +40,65 @@ const DoctorRegistryPage: React.FC = () => {
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
-  const [specialty, setSpecialty] = useState("");
-  const [registerNumber, setRegisterNumber] = useState("");
-  const [initialTimeStart, setInitialTimeStart] = useState("");
-  const [finalTimeStart, setFinalTimeStart] = useState("");
+  const [registryNumber, setRegistryNumber] = useState("");
+  const [initialHour, setInitialHour] = useState("");
+  const [finalHour, setFinalHour] = useState("");
   const [consultationPrice, setConsultationPrice] = useState("");
   const [userId, setUserId] = useState<number>(0);
   const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const handleBackPress = () => {
-    router.replace("/register/doctor-patient-register");
+    router.back();
   };
 
   async function handleDoctorRegistry() {
     try {
-      console.log(specialty);
-      console.log(registerNumber);
-      console.log(initialTimeStart);
-      console.log(finalTimeStart);
-      console.log(consultationPrice);
-      console.log(userId);
       setLoading(true);
+
+      const days = selectedDays.sort().join("");
+
       await apiPost("/Doctor", {
-        specialty,
-        registerNumber,
-        initialTimeStart,
-        finalTimeStart,
+        registryNumber,
+        initialHour,
+        finalHour,
         consultationPrice,
+        days,
         userId,
       });
-      router.replace("/home-doctor");
+
+      const response = await apiGet<Doctor>(`/Users/credentialsId/${userId}`);
+      AsyncStorage.setItem(STORAGE_USER, JSON.stringify(response.data)).then(
+        () => router.push("/register/doctor-speciality")
+      );
     } catch (err: any) {
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
   }
+
+  const handleTimeInput = (
+    value: string,
+    setTime: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    // Remove qualquer caractere que não seja número
+    const cleanedValue = value.replace(/[^0-9]/g, "");
+
+    if (cleanedValue.length === 1) {
+      setTime(`0${cleanedValue}:00`); // Adiciona 0 à esquerda e :00
+    } else if (cleanedValue.length === 2) {
+      const hours = parseInt(cleanedValue, 10);
+      if (hours >= 0 && hours <= 24) {
+        setTime(`${cleanedValue.padStart(2, "0")}:00`); // Formata horas corretamente
+      } else {
+        // Se as horas forem inválidas, não faça nada ou exiba um erro
+        setTime("");
+      }
+    } else {
+      setTime("");
+    }
+  };
 
   const handleDaySelection = (id: number) => {
     setSelectedDays((prevSelectedDays) =>
@@ -101,7 +124,7 @@ const DoctorRegistryPage: React.FC = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const value = await AsyncStorage.getItem(STORAGE_USER);
+        const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
         if (value) {
           const user: User = JSON.parse(value);
           setUserId(user.id);
@@ -161,22 +184,12 @@ const DoctorRegistryPage: React.FC = () => {
                 autoCapitalize="none"
               />
               <Input
-                label="Especialidade"
-                autoCorrect={false}
-                placeholder="Odontologia"
-                value={specialty}
-                onChangeText={(value) => {
-                  setSpecialty(value);
-                }}
-                style={styles.input}
-              />
-              <Input
                 label="Número de Registro"
                 autoCorrect={false}
                 placeholder="RS-12345"
-                value={registerNumber}
+                value={registryNumber}
                 onChangeText={(value) => {
-                  setRegisterNumber(value);
+                  setRegistryNumber(value);
                 }}
                 style={styles.input}
               />
@@ -184,20 +197,16 @@ const DoctorRegistryPage: React.FC = () => {
                 label="Horário inicial de atendimento"
                 autoCorrect={false}
                 placeholder="18:00"
-                value={initialTimeStart}
-                onChangeText={(value) => {
-                  setInitialTimeStart(value);
-                }}
+                value={initialHour}
+                onChangeText={(value) => handleTimeInput(value, setInitialHour)}
                 style={styles.input}
               />
               <Input
                 label="Horário final de atendimento"
                 autoCorrect={false}
                 placeholder="06:00"
-                value={finalTimeStart}
-                onChangeText={(value) => {
-                  setFinalTimeStart(value);
-                }}
+                value={finalHour}
+                onChangeText={(value) => handleTimeInput(value, setFinalHour)}
                 style={styles.input}
               />
               <View style={styles.daysOfWeekContainer}>

@@ -15,7 +15,7 @@ const AppointmentsPage: React.FC = () => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   const handleBackPress = () => {
-    router.replace("/home-patient");
+    router.back();
   };
 
   const handleAuxiliaryModalPress = () => {

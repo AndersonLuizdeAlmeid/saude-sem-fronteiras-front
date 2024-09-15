@@ -15,21 +15,20 @@ import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import SimpleModal from "../../components/Modal";
-import { useLocalSearchParams } from "expo-router";
-import { apiGet, apiPost } from "../../utils/api";
+import { apiGet } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_CREDENTIALS, STORAGE_USER } from "../../constants/storage";
-import { Credentials } from "../../domain/Credentials/credentials";
+import {
+  STORAGE_CONFIRMATION_CODE,
+  STORAGE_EMAIL,
+} from "../../constants/storage";
 
-const CredentialsRegistryPage: React.FC = () => {
+const RecoveryPasswordPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
-  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
 
   const handleBackPress = () => {
     router.replace("/");
@@ -47,39 +46,22 @@ const CredentialsRegistryPage: React.FC = () => {
     console.log("Labels selecionadas:", labels);
   };
 
-  const handleRegistry = async () => {
+  const handleSendCode = async () => {
     try {
-      if (password === passwordConfirmation) {
-        setLoading(true);
-        await apiPost("/Credentials", { email, password });
-        console.log(password);
-        console.log(passwordConfirmation);
+      setLoading(true);
+      const response = await apiGet(`/Credentials/RecoveryPassword/${email}`);
+      AsyncStorage.setItem(STORAGE_EMAIL, JSON.stringify(email));
 
-        const response = await apiGet<Credentials>(
-          `/Credentials/${email}/${password}`
-        );
-        console.log(response);
-        AsyncStorage.setItem(
-          STORAGE_CREDENTIALS,
-          JSON.stringify(response.data)
-        ).then(() => router.push("/register"));
-      } else {
-        setErrorModalVisible(true);
-      }
+      AsyncStorage.setItem(
+        STORAGE_CONFIRMATION_CODE,
+        JSON.stringify(response.data)
+      ).then(() => router.push("/recovery-password/confirmation-code"));
     } catch (err: any) {
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    try {
-      AsyncStorage.removeItem(STORAGE_USER);
-    } catch (error) {
-      console.error("Erro ao remover o ID do usuário:", error);
-    }
-  });
 
   useEffect(() => {
     Animated.parallel([
@@ -118,33 +100,19 @@ const CredentialsRegistryPage: React.FC = () => {
           >
             <View style={styles.formContainer}>
               <Input
-                label="E-mail"
+                label="Informe seu email"
                 autoCorrect={false}
-                placeholder="exemplo@exemplo.com"
+                placeholder="Informe aqui seu endereço de e-mail"
                 value={email}
                 onChangeText={(value) => setEmail(value)}
                 style={styles.input}
               />
-              <Input
-                label="Senha"
-                autoCorrect={false}
-                placeholder="********"
-                secureTextEntry
-                value={password}
-                onChangeText={(value) => setPassword(value)}
-                style={styles.input}
-              />
-              <Input
-                label="Confirmação de senha"
-                autoCorrect={false}
-                placeholder="********"
-                secureTextEntry
-                value={passwordConfirmation}
-                onChangeText={(value) => setPasswordConfirmation(value)}
-                style={styles.input}
-              />
-              <Button onPress={handleRegistry} style={styles.button}>
-                PRÓXIMO
+              <Button
+                onPress={handleSendCode}
+                loading={loading}
+                style={styles.button}
+              >
+                ENVIAR CÓDIGO
               </Button>
             </View>
           </Animated.View>
@@ -158,7 +126,7 @@ const CredentialsRegistryPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Senhas não estão iguais."
+        message="Por favor, preencha todos os campos."
       />
     </SafeAreaView>
   );
@@ -187,4 +155,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CredentialsRegistryPage;
+export default RecoveryPasswordPage;

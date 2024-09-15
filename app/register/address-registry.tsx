@@ -67,7 +67,7 @@ const AddressRegistryPage: React.FC = () => {
   >([]);
 
   const handleBackPress = () => {
-    router.replace("/register");
+    router.back();
   };
 
   const handleAuxiliaryModalPress = () => {
@@ -85,7 +85,6 @@ const AddressRegistryPage: React.FC = () => {
   const handleAddressRegistry = async () => {
     try {
       let cityId = city?.id;
-      console.log(city);
       setLoading(true);
       await apiPost("/Address", {
         district,

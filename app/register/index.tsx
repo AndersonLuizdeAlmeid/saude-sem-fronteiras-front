@@ -31,7 +31,7 @@ const RegistryPage: React.FC = () => {
   const [name, setName] = useState("");
   const [cpf, setCpf] = useState("");
   const [motherName, setMotherName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [dateBirth, setDateBirth] = useState("");
   const [gender, setGender] = useState("");
   const [language, setLanguage] = useState("");
   const [credentialsId, setCredentialsId] = useState<number>(0);
@@ -39,18 +39,18 @@ const RegistryPage: React.FC = () => {
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   const handleBackPress = () => {
-    router.replace("/register/credentials-registry");
+    router.back();
   };
 
   const sendToBackend = async () => {
-    console.log(credentialsId);
     try {
       setLoading(true);
+      console.log(dateBirth);
       await apiPost("/Users", {
         name,
         cpf,
         motherName,
-        dateOfBirth,
+        dateBirth,
         gender,
         language,
         credentialsId,
@@ -58,7 +58,6 @@ const RegistryPage: React.FC = () => {
       const response = await apiGet<Credentials>(
         `/Users/credentialsId/${credentialsId}`
       );
-      console.log(response.data);
       AsyncStorage.setItem(STORAGE_USER, JSON.stringify(response.data)).then(
         () => router.push("/register/address-registry")
       );
@@ -91,7 +90,7 @@ const RegistryPage: React.FC = () => {
       name.trim() &&
       cpf.trim() &&
       motherName.trim() &&
-      dateOfBirth.trim() &&
+      dateBirth.trim() &&
       gender.trim() &&
       language.trim()
     ) {
@@ -119,8 +118,10 @@ const RegistryPage: React.FC = () => {
   };
 
   const handleConfirm = (selectedDate: Date) => {
-    const formattedDate = selectedDate.toLocaleDateString(); // Formata a data conforme necessário
-    setDateOfBirth(formattedDate);
+    const formattedDate = selectedDate.toISOString().split("T")[0];
+    setDateBirth(formattedDate);
+    console.log(dateBirth);
+    console.log(formattedDate);
     setDatePickerVisibility(false);
   };
 
@@ -194,7 +195,7 @@ const RegistryPage: React.FC = () => {
               <Text style={styles.inputName}>Data de Nascimento</Text>
               <View style={styles.inputData}>
                 <Text style={styles.inputText}>
-                  {dateOfBirth || "Aperte aqui para adicionar a data"}
+                  {dateBirth || "Aperte aqui para adicionar a data"}
                 </Text>
               </View>
             </TouchableOpacity>

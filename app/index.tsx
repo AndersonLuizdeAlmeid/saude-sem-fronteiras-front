@@ -5,8 +5,19 @@ import { apiGet, apiPost } from "../utils/api";
 import Input from "../components/Input";
 import Button from "../components/Button";
 import { router } from "expo-router";
-import { STORAGE_TOKEN } from "../constants/storage";
+import {
+  STORAGE_ADDRESS,
+  STORAGE_CREDENTIALS,
+  STORAGE_DOCTOR,
+  STORAGE_PATIENT,
+  STORAGE_TOKEN,
+  STORAGE_USER,
+} from "../constants/storage";
 import Page from "../components/Page";
+import { Credentials } from "../domain/Credentials/credentials";
+import SimpleModal from "../components/Modal";
+import { Address } from "../domain/Address/address";
+import { Doctor } from "../domain/Doctor/doctor";
 
 export default function LoginPage() {
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
@@ -16,6 +27,8 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [logoSize] = useState(new Animated.Value(280));
+  const [isErrorModalVisible, setErrorModalVisible] = useState(false);
+  const [isModalVisible, setModalVisible] = useState(false);
 
   async function handleLogin() {
     try {
@@ -25,10 +38,52 @@ export default function LoginPage() {
         password,
       });
 
+      console.log(email);
+      console.log(password);
       await AsyncStorage.setItem(STORAGE_TOKEN, response.data);
-      router.replace("/home-patient");
+      const CredentialsResponse = await apiGet<Credentials>(
+        `/Credentials/${email}/${password}`
+      );
+
+      AsyncStorage.setItem(STORAGE_CREDENTIALS, JSON.stringify(response.data));
+      const userResponse = await apiGet<Credentials>(
+        `/Users/credentialsId/${CredentialsResponse.data.id}`
+      );
+      AsyncStorage.setItem(STORAGE_USER, JSON.stringify(userResponse.data));
+
+      const address = await apiGet<Address>(
+        `/Address/id/${userResponse.data.id}`
+      );
+      AsyncStorage.setItem(STORAGE_ADDRESS, JSON.stringify(address.data));
+
+      const userOrDoctor = await apiGet<number>(
+        `/Users/id/${userResponse.data.id}`
+      );
+
+      if (userOrDoctor.data === 1) {
+        const doctorResponse = await apiGet<Doctor>(
+          `/Doctor/id/${userResponse.data.id}`
+        );
+        AsyncStorage.setItem(
+          STORAGE_DOCTOR,
+          JSON.stringify(doctorResponse.data)
+        );
+        router.replace("/home-doctor");
+      } else if (userOrDoctor.data === 2) {
+        const patientResponse = await apiGet<Doctor>(
+          `/Patient/id/${userResponse.data.id}`
+        );
+        AsyncStorage.setItem(
+          STORAGE_PATIENT,
+          JSON.stringify(patientResponse.data)
+        );
+        console.log(patientResponse.data);
+        router.replace("/home-patient");
+      } else {
+        setErrorModalVisible(true);
+      }
     } catch (err: any) {
-      setErrorMessage(err.request.response);
+      setErrorModalVisible(true);
     } finally {
       setLoading(false);
     }
@@ -38,21 +93,8 @@ export default function LoginPage() {
     router.replace("/register/credentials-registry");
   }
 
-  async function handleForgotPassword() {
-    try {
-      setLoading(true);
-      const response = await apiPost<string>("/ForgotPassword", {
-        email,
-        password,
-      });
-
-      await AsyncStorage.setItem(STORAGE_TOKEN, response.data);
-      router.replace("/forgotPassword");
-    } catch (err: any) {
-      setErrorMessage(err.request.response);
-    } finally {
-      setLoading(false);
-    }
+  async function handleRecoveryPassword() {
+    router.replace("/register/credentials-registry");
   }
 
   useEffect(() => {
@@ -157,12 +199,17 @@ export default function LoginPage() {
         </Button>
 
         <Button
-          onPress={handleForgotPassword}
+          onPress={handleRecoveryPassword}
           loading={loading}
           style={{ marginBottom: 10 }}
         >
           ESQUECEU A SENHA?
         </Button>
+        <SimpleModal
+          visible={isErrorModalVisible}
+          onClose={() => setErrorModalVisible(false)}
+          message="Por favor, preencha todos os campos."
+        />
       </Animated.View>
     </Page>
   );

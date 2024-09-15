@@ -13,7 +13,7 @@ const AppointmentsDoctorPage: React.FC = () => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   const handleBackPress = () => {
-    router.replace("/home-doctor");
+    router.back();
   };
 
   const handleAuxiliaryModalPress = () => {

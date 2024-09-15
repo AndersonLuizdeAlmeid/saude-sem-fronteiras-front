@@ -37,7 +37,7 @@ const PatientRegistryPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleBackPress = () => {
-    router.replace("/register/doctor-patient-register");
+    router.back();
   };
 
   async function handlePatientRegistry() {

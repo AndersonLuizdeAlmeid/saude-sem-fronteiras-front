@@ -5,6 +5,7 @@ export interface User {
   motherName: string;
   dateBirth: string;
   dateOfCreation: string;
+  gender: string;
   language: string;
   isActive: string;
   credentialsId: string;

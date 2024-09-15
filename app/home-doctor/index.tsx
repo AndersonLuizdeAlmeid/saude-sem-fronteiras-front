@@ -6,9 +6,12 @@ import { router } from "expo-router";
 import { colors } from "../../constants/colors";
 import { ScrollView } from "react-native";
 import CardIcon from "../../components/CardIcon";
+import SelectionModal from "../../components/CustomModal";
 
 const HomePage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
+  const [isErrorModalVisible, setErrorModalVisible] = useState(false);
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   const handleBackPress = () => {
     router.replace("/");
@@ -16,6 +19,15 @@ const HomePage: React.FC = () => {
 
   const handleAuxiliaryModalPress = () => {
     setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleSelectLabels = (labels: string[]) => {
+    setSelectedLabels(labels);
+    console.log("Labels selecionadas:", labels);
   };
 
   const items = [
@@ -52,6 +64,11 @@ const HomePage: React.FC = () => {
           ))}
         </ScrollView>
       </View>
+      <SelectionModal
+        visible={isModalVisible}
+        onClose={handleCloseModal}
+        onSelect={handleSelectLabels}
+      />
     </SafeAreaView>
   );
 };

@@ -19,10 +19,16 @@ import SelectionModal from "../../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_USER } from "../../constants/storage";
 import { User } from "../../domain/User/user";
-import { apiPost } from "../../utils/api";
+import { apiGet, apiPut } from "../../utils/api";
 import SimpleModal from "../../components/Modal";
+import { Patient } from "../../domain/Patient/patient";
+import { City } from "../../domain/City/city";
+import { Address } from "../../domain/Address/address";
+import ComboBox from "../../components/ComboBox";
+import { State } from "../../domain/State/state";
+import { Country } from "../../domain/Country/country";
 
-const PatientRegistryPage: React.FC = () => {
+const PerfilPatientPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
@@ -35,6 +41,7 @@ const PatientRegistryPage: React.FC = () => {
   const [medicines, setMedicines] = useState("");
   const [emergencyNumber, seteEmergencyNumber] = useState("");
   const [userId, setUserId] = useState<number>(0);
+  const [nameInput, setNameInput] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [erro, setErro] = useState<number>(0);
   const [cpf, setCpf] = useState("");
@@ -43,11 +50,47 @@ const PatientRegistryPage: React.FC = () => {
   const [gender, setGender] = useState("");
   const [language, setLanguage] = useState("");
   const [credentialsId, setCredentialsId] = useState<number>(0);
+  const [country, setCountry] = useState<{
+    id: number;
+    description: string;
+  } | null>(null);
+  const [state, setState] = useState<{
+    id: number;
+    description: string;
+    countryId: number;
+  } | null>(null);
+  const [city, setCity] = useState<{
+    id: number;
+    description: string;
+    stateId: number;
+  } | null>(null);
+  const [district, setDistrict] = useState("");
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [complement, setComplement] = useState("");
+  const [countries, setCountries] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+  const [allStates, setAllStates] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+  const [allCities, setAllCities] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+  const [filteredStates, setFilteredStates] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+  const [filteredCities, setFilteredCities] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+  const [countryString, setCountryString] = useState<string>("");
+  const [stateString, setStateString] = useState<string>("");
+  const [cityString, setCityString] = useState<string>("");
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleBackPress = () => {
-    router.replace("/register/doctor-patient-register");
+    router.back();
   };
 
   async function handlePatientRegistry() {
@@ -62,15 +105,27 @@ const PatientRegistryPage: React.FC = () => {
         emergencyNumber,
         userId,
       });
-
-      await apiPost("/Users", {
+      const id = userId;
+      var statusUser = true;
+      await apiPut("/Users", {
+        id,
         name,
         cpf,
         motherName,
         dateOfBirth,
         gender,
         language,
+        statusUser,
         credentialsId,
+      });
+      const cityId = city?.id;
+      await apiPut("/Address", {
+        district,
+        street,
+        number,
+        complement,
+        cityId,
+        userId,
       });
 
       router.replace("/home-patient");
@@ -93,18 +148,7 @@ const PatientRegistryPage: React.FC = () => {
   }, [erro]);
 
   async function handleAddressRegistry() {
-    if (
-      name.trim() &&
-      cpf.trim() &&
-      motherName.trim() &&
-      dateOfBirth.trim() &&
-      gender.trim() &&
-      language.trim()
-    ) {
-      await handlePatientRegistry(); // Envia os dados para o backend antes de redirecionar
-    } else {
-      setErrorModalVisible(true); // Exibe o modal de erro se algum campo não estiver preenchido
-    }
+    await handlePatientRegistry(); // Envia os dados para o backend antes de redirecionar
   }
 
   const showDatePicker = () => {
@@ -121,20 +165,58 @@ const PatientRegistryPage: React.FC = () => {
 
   const handleSelectLabels = (labels: string[]) => {
     setSelectedLabels(labels);
-    console.log("Labels selecionadas:", labels);
   };
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const value = await AsyncStorage.getItem(STORAGE_USER);
-        if (value) {
-          const user: User = JSON.parse(value);
+        const UserValue = await AsyncStorage.getItem(STORAGE_USER);
+        if (UserValue) {
+          const user: User = JSON.parse(UserValue);
           setUserId(user.id);
+          setNameInput(user.name);
           setName(user.name);
+          setCpf(user.cpf);
+          setMotherName(user.motherName);
+          setDateOfBirth(user.dateBirth);
+          setGender(user.gender);
+          setLanguage(user.language);
+
+          const patientResponse = await apiGet<Patient>(
+            `/Patient/id/${user.id}`
+          );
+          setBloodType(patientResponse.data.bloodType);
+          setAllergies(patientResponse.data.allergies);
+          setMedicalCondition(patientResponse.data.medicalCondition);
+          setPreviousSurgeries(patientResponse.data.previousSurgeries);
+          setMedicines(patientResponse.data.medicines);
+          seteEmergencyNumber(patientResponse.data.emergencyNumber);
+
+          const address = await apiGet<Address>(`/Address/id/${user.id}`);
+          setDistrict(address.data.district);
+          setStreet(address.data.street);
+          setNumber(address.data.number);
+          setComplement(address.data.complement);
+
+          const cityResponse = await apiGet<City>(
+            `/City/id/${address.data.cityId}`
+          );
+          setCity(cityResponse.data);
+          setCityString(`Cidade Atual -> ${cityResponse.data.description}`);
+
+          const stateResponse = await apiGet<State>(
+            `/State/id/${cityResponse.data.stateId}`
+          );
+          setState(stateResponse.data);
+          setStateString(`Estado atual -> ${stateResponse.data.description}`);
+
+          const countryResponse = await apiGet<Country>(
+            `/Country/id/${stateResponse.data.countryId}`
+          );
+          setCountry(countryResponse.data);
+          setCountryString(`País atual -> ${countryResponse.data.description}`);
         } else {
           setErro(1); // Define o erro se o usuário não for encontrado
-          console.log("Nenhum valor encontrado no AsyncStorage");
         }
       } catch (error) {
         console.error("Erro ao recuperar ou parsear do AsyncStorage:", error);
@@ -143,6 +225,99 @@ const PatientRegistryPage: React.FC = () => {
 
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (country) {
+      setFilteredStates(
+        allStates.filter((state) => state.comparativeId === country.id)
+      );
+    } else {
+      setFilteredStates(allStates);
+    }
+  }, [country]);
+
+  useEffect(() => {
+    if (state) {
+      setFilteredCities(
+        allCities.filter((city) => city.comparativeId === state.id)
+      );
+    } else {
+      setFilteredCities(allCities);
+    }
+  }, [state]);
+
+  const loadCountries = async () => {
+    try {
+      setLoading(true);
+      const response = await apiGet("/Country/all");
+
+      if (response && Array.isArray(response.data)) {
+        const formattedCountries = response.data.map(
+          (country: { id: number; description: string }) => ({
+            id: country.id,
+            label: country.description,
+            comparativeId: country.id,
+          })
+        );
+        setCountries(formattedCountries);
+      } else {
+        setCountries([]);
+        setErrorModalVisible(true);
+      }
+    } catch (err: any) {
+      setErrorModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStates = async () => {
+    try {
+      setLoading(true);
+      const response = await apiGet("/State/all");
+      if (response && Array.isArray(response.data)) {
+        const formattedStates = response.data.map(
+          (state: { id: number; description: string; countryId: number }) => ({
+            id: state.id,
+            label: state.description,
+            comparativeId: state.countryId,
+          })
+        );
+        setAllStates(formattedStates);
+      } else {
+        setAllStates([]);
+        setErrorModalVisible(true);
+      }
+    } catch (err: any) {
+      setErrorModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCities = async () => {
+    try {
+      setLoading(true);
+      const response = await apiGet("/City/all");
+      if (response && Array.isArray(response.data)) {
+        const formattedCities = response.data.map(
+          (city: { id: number; description: string; stateId: number }) => ({
+            id: city.id,
+            label: city.description,
+            comparativeId: city.stateId,
+          })
+        );
+        setAllCities(formattedCities);
+      } else {
+        setAllCities([]);
+        setErrorModalVisible(true);
+      }
+    } catch (err: any) {
+      setErrorModalVisible(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -183,10 +358,7 @@ const PatientRegistryPage: React.FC = () => {
               <Input
                 label=""
                 autoCorrect={false}
-                value={name}
-                onChangeText={(value) => {
-                  setBloodType(value);
-                }}
+                value={nameInput}
                 style={styles.inputPrincipal}
                 autoCapitalize="none"
               />
@@ -327,8 +499,78 @@ const PatientRegistryPage: React.FC = () => {
                 }}
                 style={styles.customLine}
               />
-              <Button onPress={handlePatientRegistry} style={styles.button}>
-                CADASTRAR
+              <ComboBox
+                label={countryString}
+                data={countries}
+                onSelect={(selectedCountry) => {
+                  setCountry({
+                    id: selectedCountry.id,
+                    description: selectedCountry.label,
+                  });
+                }}
+                placeholder="Escolha um país"
+                value={country?.description || ""}
+              />
+              <ComboBox
+                label={stateString}
+                data={filteredStates}
+                onSelect={(selectedState) => {
+                  setState({
+                    id: selectedState.id,
+                    description: selectedState.label,
+                    countryId: selectedState.comparativeId,
+                  });
+                }}
+                placeholder="Escolha um Estado"
+                value={state?.description || ""}
+              />
+              <ComboBox
+                label={cityString}
+                data={filteredCities}
+                onSelect={(selectedCity) =>
+                  setCity({
+                    id: selectedCity.id,
+                    description: selectedCity.label,
+                    stateId: selectedCity.comparativeId,
+                  })
+                }
+                placeholder="Escolha uma Cidade"
+                value={city?.description || ""}
+              />
+              <Input
+                label="Bairro"
+                autoCorrect={false}
+                placeholder="Ponte Seca"
+                value={district}
+                onChangeText={(value) => setDistrict(value)}
+                style={styles.input}
+              />
+              <Input
+                label="Rua"
+                autoCorrect={false}
+                placeholder="Evaristo Canal"
+                value={street}
+                onChangeText={(value) => setStreet(value)}
+                style={styles.input}
+              />
+              <Input
+                label="Número"
+                autoCorrect={false}
+                placeholder="186"
+                value={number}
+                onChangeText={(value) => setNumber(value)}
+                style={styles.input}
+              />
+              <Input
+                label="Complemento"
+                autoCorrect={false}
+                placeholder="Casa de dois andares"
+                value={complement}
+                onChangeText={(value) => setComplement(value)}
+                style={styles.input}
+              />
+              <Button onPress={handleAddressRegistry} style={styles.button}>
+                ALTERAR DADOS DO USUÁRIO
               </Button>
             </View>
           </Animated.View>
@@ -400,18 +642,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PatientRegistryPage;
-function apiPut(
-  arg0: string,
-  arg1: {
-    bloodType: string;
-    allergies: string;
-    medicalCondition: string;
-    previousSurgeries: string;
-    medicines: string;
-    emergencyNumber: string;
-    userId: number;
-  }
-) {
-  throw new Error("Function not implemented.");
-}
+export default PerfilPatientPage;

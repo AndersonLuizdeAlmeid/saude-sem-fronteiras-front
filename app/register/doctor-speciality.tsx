@@ -10,15 +10,18 @@ import Button from "../../components/Button";
 import Input from "../../components/Input";
 import { apiDelete, apiGet, apiPost } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_USER } from "../../constants/storage";
+import { STORAGE_DOCTOR, STORAGE_USER } from "../../constants/storage";
 import { User } from "../../domain/User/user";
+import SelectionModal from "../../components/CustomModal";
 
-const PhonesRegistryPage: React.FC = () => {
+const SpecialitiesRegistryPage: React.FC = () => {
+  const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
-  const [number, setNumber] = useState("");
+  const [description, setDescription] = useState("");
   const [userId, setUserId] = useState<number>(0);
   const [consultations, setConsultations] = useState<
     { id: number; data: string }[]
@@ -45,7 +48,18 @@ const PhonesRegistryPage: React.FC = () => {
     console.log(userId);
   }, []);
 
-  const handleAuxiliaryModalPress = () => {};
+  const handleAuxiliaryModalPress = () => {
+    setModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setModalVisible(false);
+  };
+
+  const handleSelectLabels = (labels: string[]) => {
+    setSelectedLabels(labels);
+    console.log("Labels selecionadas:", labels);
+  };
 
   const handleSelectConsultation = (consultation: any) => {
     setSelectedConsultation(consultation);
@@ -59,7 +73,7 @@ const PhonesRegistryPage: React.FC = () => {
           const user: User = JSON.parse(value);
           setUserId(user.id);
         } else {
-          console.log("Nenhum valor encontrado no AsyncStorage");
+          console.log("Nenhum valor enconatrado no AsyncStorage");
         }
       } catch (error) {
         console.error("Erro ao recuperar ou parsear do AsyncStorage:", error);
@@ -69,18 +83,19 @@ const PhonesRegistryPage: React.FC = () => {
     fetchUser();
   }, []);
 
-  const getPhonesById = async () => {
+  const getSpecialitiesByDoctorId = async () => {
     try {
-      const response = await apiGet(`/Phone/${userId}`);
+      const doctorId = await AsyncStorage.getItem(STORAGE_DOCTOR);
+      const response = await apiGet(`/Speciality/${doctorId}`);
       if (response && Array.isArray(response.data)) {
         // Mapear os dados para a estrutura esperada
         const formattedConsultations = response.data.map((item: any) => ({
           id: item.id,
-          data: item.number, // ou use uma propriedade que faça sentido
+          data: item.description,
         }));
         setConsultations(formattedConsultations);
       } else {
-        console.error("Formato de resposta inesperado:", response);
+        console.error("Formato de respsosta inesperado:", response);
       }
     } catch (error) {
       console.error("Erro ao buscar consultas:", error);
@@ -90,7 +105,7 @@ const PhonesRegistryPage: React.FC = () => {
   const handleDeletetShift = async () => {
     if (selectedConsultation && selectedConsultation.id) {
       try {
-        await apiDelete(`/Phone/${selectedConsultation.id}`);
+        await apiDelete(`/Speciality/${selectedConsultation.id}`);
         const updatedConsultations = consultations.filter(
           (consultation) => consultation.id !== selectedConsultation.id
         );
@@ -108,7 +123,7 @@ const PhonesRegistryPage: React.FC = () => {
           setSelectedConsultation(null);
         }
 
-        getPhonesById(); // Atualiza a lista de telefones
+        getSpecialitiesByDoctorId(); // Atualiza a lista de telefones
       } catch (error) {
         console.error("Erro ao deletar consulta:", error);
       }
@@ -118,30 +133,32 @@ const PhonesRegistryPage: React.FC = () => {
   };
 
   const handleSavetShift = async () => {
-    if (number.trim()) {
-      await apiPost("/Phone", {
-        number,
-        userId,
+    if (description.trim()) {
+      const doctorId = await AsyncStorage.getItem(STORAGE_DOCTOR);
+      await apiPost("/Speciality", {
+        description,
+        doctorId,
       });
-      getPhonesById();
-      setNumber("");
+      console.log(description);
+      getSpecialitiesByDoctorId();
+      setDescription(" ");
     } else {
       setErrorModalVisible(true);
     }
   };
 
   const handleFinishtShift = async () => {
-    router.replace("/register/doctor-patient-register");
+    router.replace("/home-doctor");
   };
 
   useEffect(() => {
-    getPhonesById();
+    getSpecialitiesByDoctorId();
   }, []);
 
   const items = [
     {
-      text: "Telefones",
-      icon: "phone",
+      text: "Especialidade",
+      icon: "syringe",
       //TODO remover esse onpress futuramente
       onPress: handleSavetShift,
     },
@@ -170,12 +187,12 @@ const PhonesRegistryPage: React.FC = () => {
               </React.Fragment>
             ))}
             <Input
-              label="Telefone"
+              label="Especialidade"
               autoCorrect={false}
-              placeholder="5499972516"
-              value={number}
+              placeholder="Pediatra"
+              value={description}
               onChangeText={(value) => {
-                setNumber(value);
+                setDescription(value);
               }}
               style={styles.input}
               autoCapitalize="none"
@@ -196,6 +213,11 @@ const PhonesRegistryPage: React.FC = () => {
           </ScrollView>
         </View>
       </Animated.View>
+      <SelectionModal
+        visible={isModalVisible}
+        onClose={handleCloseModal}
+        onSelect={handleSelectLabels}
+      />
     </SafeAreaView>
   );
 };
@@ -219,4 +241,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PhonesRegistryPage;
+export default SpecialitiesRegistryPage;

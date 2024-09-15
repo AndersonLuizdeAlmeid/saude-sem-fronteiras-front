@@ -18,6 +18,10 @@ import HeaderPage from "../../components/HeaderPage";
 import DateTimePickerModal from "react-native-modal-datetime-picker"; // Importar a biblioteca
 import { colors } from "../../constants/colors";
 import SimpleModal from "../../components/Modal";
+import { apiGet, apiPost } from "../../utils/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { STORAGE_PATIENT } from "../../constants/storage";
+import { Patient } from "../../domain/Patient/patient";
 
 const EmergencyPatientPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -25,15 +29,41 @@ const EmergencyPatientPage: React.FC = () => {
   const [isSuccessModalVisible, setSuccessModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [date, setDate] = useState<string>("");
+  const [patientId, setPatientId] = useState<number>(0);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
   const [selectedSpecialty, setSelectedSpecialty] = useState("");
   const [messageModal, setMessageModal] = useState<string>("");
+  const [specialities, setSpecialities] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+  const [doctors, setDoctors] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+  const [freeTimes, setFreeTimes] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+
+  const [speciality, setSpeciality] = useState<{
+    id: number;
+    description: string;
+  } | null>(null);
+  const [doctor, setDoctor] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+  const [freeTime, setFreeTime] = useState<{
+    id: number;
+    description: string;
+  } | null>(null);
+
+  const [changeSpeciality, setChangeSpeciality] = useState<number>(0);
 
   const handleBackPress = () => {
-    router.replace("/home-patient/appointments");
+    router.back();
   };
 
   const handleAuxiliaryModalPress = () => {
@@ -45,16 +75,25 @@ const EmergencyPatientPage: React.FC = () => {
   };
 
   async function handleSchedule() {
-    // Verifica se todos os campos necessários estão preenchidos
-    if (selectedSpecialty && date) {
-      // Se tudo estiver preenchido corretamente, exibe o modal de sucesso
-      setMessageModal("Agendamento realizado com sucesso!");
-      setSuccessModalVisible(true);
-    } else {
-      // Se houver algum erro, exibe o modal de erro
-      setMessageModal("Erro ao realizar o agendamento. Verifique os campos.");
+    if (!date || !freeTime) {
+      setMessageModal("Selecione uma data e horário");
       setErrorModalVisible(true);
+      return;
     }
+
+    // Verifica se todos os campos necessários estão preenchidos
+    setLoading(true);
+    const duration = 0;
+    const doctorId = doctor?.id;
+    console.log(patientId);
+    const dateTime = `${date}T${freeTime.description}:00`;
+    await apiPost("/Appointment", {
+      date: dateTime,
+      duration,
+      doctorId,
+      patientId,
+    });
+    router.replace("/home-patient");
   }
 
   const handleSelectLabels = (labels: string[]) => {
@@ -63,7 +102,7 @@ const EmergencyPatientPage: React.FC = () => {
   };
 
   const handleConfirm = (selectedDate: Date) => {
-    const formattedDate = selectedDate.toLocaleDateString(); // Formata a data conforme necessário
+    const formattedDate = selectedDate.toISOString().split("T")[0]; // Formato YYYY-MM-DD
     setDate(formattedDate);
     setDatePickerVisibility(false);
   };
@@ -71,6 +110,118 @@ const EmergencyPatientPage: React.FC = () => {
   const showDatePicker = () => {
     setDatePickerVisibility(true);
   };
+
+  useEffect(() => {
+    const loadSpecialities = async () => {
+      try {
+        const value = await AsyncStorage.getItem(STORAGE_PATIENT);
+        console.log(value);
+        if (value) {
+          const patient: Patient = JSON.parse(value);
+          setPatientId(patient.id);
+          console.log(patientId);
+        } else {
+          console.log("Nenhum valor encontrado no AsyncStorage");
+        }
+        setLoading(true);
+        const response = await apiGet("/Speciality/all");
+        if (response && Array.isArray(response.data)) {
+          const formattedSpecialities = response.data.map(
+            (country: { id: number; description: string }) => ({
+              id: country.id,
+              label: country.description,
+              comparativeId: country.id,
+            })
+          );
+          setSpecialities(formattedSpecialities);
+        } else {
+          setSpecialities([]);
+          setMessageModal("Erro ao selecionar as especialidades");
+          setErrorModalVisible(true);
+        }
+      } catch (err: any) {
+        setErrorModalVisible(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSpecialities();
+  }, []);
+
+  useEffect(() => {
+    const loadDoctors = async () => {
+      try {
+        setLoading(true);
+        const response = await apiGet(`/Doctor/specialityId/${speciality?.id}`);
+        if (response && Array.isArray(response.data)) {
+          const formattedDoctors = response.data.map(
+            (doctor: { id: number; name: string }) => ({
+              id: doctor.id,
+              label: doctor.name,
+              comparativeId: doctor.id,
+            })
+          );
+
+          setDoctors(formattedDoctors);
+        } else {
+          setDoctors([]);
+          setMessageModal("Erro ao selecionar os médicos");
+          setErrorModalVisible(true);
+        }
+      } catch (err: any) {
+        //setErrorModalVisible(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDoctors();
+  }, [changeSpeciality]);
+
+  function formatDateWithTime(date: Date, time: string) {
+    // Quebra o horário no formato HH:MM e ajusta na data
+    const [hours, minutes] = time.split(":").map(Number);
+    const newDate = new Date(date); // Cria uma nova instância da data para não modificar a original
+    newDate.setHours(hours);
+    newDate.setMinutes(minutes);
+    newDate.setSeconds(0);
+    newDate.setMilliseconds(0);
+
+    return newDate;
+  }
+
+  useEffect(() => {
+    const loadFreeTimes = async () => {
+      try {
+        setLoading(true);
+        const response = await apiGet(
+          `/Appointment/freeTime/${doctor?.id}/${date}`
+        );
+        if (response && Array.isArray(response.data)) {
+          // Transformar a lista de horários em objetos com id e label
+          const formattedFreeTime = response.data.map(
+            (freeTime: string, index: number) => ({
+              id: index + 1, // Gera um id único para cada horário
+              label: freeTime, // Usa o horário como label
+              comparativeId: index + 1, // Usa o mesmo id gerado como comparativo
+            })
+          );
+          setFreeTimes(formattedFreeTime);
+        } else {
+          setFreeTimes([]);
+          setMessageModal("Erro ao selecionar os horários livres");
+          setErrorModalVisible(true);
+        }
+      } catch (err: any) {
+        //setErrorModalVisible(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFreeTimes();
+  }, [date]);
 
   useEffect(() => {
     Animated.parallel([
@@ -88,7 +239,6 @@ const EmergencyPatientPage: React.FC = () => {
     ]).start();
   }, []);
 
-  const specialties = ["Cardiologia", "Odontologia", "Dermatologia"];
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
@@ -112,17 +262,31 @@ const EmergencyPatientPage: React.FC = () => {
               <View style={styles.container}>
                 <ComboBox
                   label="Especialidade"
-                  data={specialties}
-                  onSelect={setSelectedSpecialty}
+                  data={specialities}
+                  onSelect={(selectedSpeciality) => {
+                    setSpeciality({
+                      id: selectedSpeciality.id,
+                      description: selectedSpeciality.label,
+                    });
+                    setChangeSpeciality(selectedSpeciality.id);
+                    console.log(changeSpeciality);
+                  }}
                   placeholder="Escolha a Especialidade"
+                  value={speciality ? speciality.description : ""} // Corrigido para refletir o estado atual
                 />
               </View>
               <View style={styles.container}>
                 <ComboBox
                   label="Médico"
-                  data={specialties}
-                  onSelect={setSelectedSpecialty}
-                  placeholder="Escolha a Especialidade"
+                  data={doctors}
+                  onSelect={(selectedDoctor) => {
+                    setDoctor({
+                      id: selectedDoctor.id,
+                      name: selectedDoctor.label,
+                    });
+                  }}
+                  placeholder="Escolha o Médico"
+                  value={doctor?.name || ""}
                 />
               </View>
               <TouchableOpacity onPress={showDatePicker}>
@@ -135,10 +299,16 @@ const EmergencyPatientPage: React.FC = () => {
               </TouchableOpacity>
               <View style={styles.container}>
                 <ComboBox
-                  label="Horário"
-                  data={specialties}
-                  onSelect={setSelectedSpecialty}
-                  placeholder="Escolha a Especialidade"
+                  label="Horários"
+                  data={freeTimes}
+                  onSelect={(selectedFreeTime) => {
+                    setFreeTime({
+                      id: selectedFreeTime.id,
+                      description: selectedFreeTime.label,
+                    });
+                  }}
+                  placeholder="Escolha o Horário Inicial"
+                  value={freeTime?.description || ""}
                 />
               </View>
               <Button onPress={handleSchedule} style={styles.button}>
@@ -162,11 +332,6 @@ const EmergencyPatientPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message={messageModal}
-      />
-      <SimpleModal
-        visible={isSuccessModalVisible}
-        onClose={() => setSuccessModalVisible(false)}
         message={messageModal}
       />
     </SafeAreaView>

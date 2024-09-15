@@ -12,6 +12,10 @@ import { colors } from "../../constants/colors";
 import CardIcon from "../CardIcon";
 import Button from "../Button";
 import { downloadAndOpenFile } from "../../utils/dowloadFile";
+import { apiGet } from "../../utils/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { STORAGE_USER } from "../../constants/storage";
+import { User } from "../../domain/User/user";
 
 interface SelectionModalProps {
   visible: boolean;
@@ -23,32 +27,50 @@ const handleStartShift = () => {
   router.replace("/");
 };
 
+const doctorOrPatient = async () => {
+  const value = await AsyncStorage.getItem(STORAGE_USER);
+  if (value) {
+    const user: User = JSON.parse(value);
+    const userOrDoctor = await apiGet<number>(`/Users/id/${user.id}`);
+    console.log(userOrDoctor);
+    if (userOrDoctor.data === 1) {
+      router.replace("/perfil/perfil-doctor");
+    } else if (userOrDoctor.data === 2) {
+      router.replace("/perfil/perfil-patient");
+    }
+  } else {
+    console.log("Nenhum valor encontrado no AsyncStorage");
+  }
+};
+
 const items = [
   {
     text: "Perfil",
     icon: "user",
     onPress: () => {
-      router.push("/../../perfil");
+      doctorOrPatient();
     },
   },
   {
     text: "Tutoriais",
     icon: "globe",
     onPress: () => {
-      downloadAndOpenFile(
-        "https://drive.google.com/uc?export=download&id=1ewF86gZGLLSYNOUKJNoveB74pzjuBnoZ",
-        "Tutoriais.pdf"
-      );
+      router.push("/../../perfil/tutorial");
+      // downloadAndOpenFile(
+      //   "https://drive.google.com/uc?export=download&id=1ewF86gZGLLSYNOUKJNoveB74pzjuBnoZ",
+      //   "Tutoriais.pdf"
+      // );
     },
   },
   {
     text: "Sobre",
     icon: "toolbox",
     onPress: () => {
-      downloadAndOpenFile(
-        "https://drive.google.com/uc?export=download&id=1SU1nP9IaPy-sdzmUEvzGsGOONdku1b33",
-        "Sobre.pdf"
-      );
+      router.push("/../../perfil/about");
+      // downloadAndOpenFile(
+      //   "https://drive.google.com/uc?export=download&id=1SU1nP9IaPy-sdzmUEvzGsGOONdku1b33",
+      //   "Sobre.pdf"
+      // );
     },
   },
 ];

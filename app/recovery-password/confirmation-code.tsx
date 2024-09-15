@@ -15,24 +15,26 @@ import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import SimpleModal from "../../components/Modal";
-import { useLocalSearchParams } from "expo-router";
-import { apiGet, apiPost } from "../../utils/api";
+import { apiGet } from "../../utils/api";
+import { ConfirmationCode } from "../../domain/ConfirmationCode/confirmationCode";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_CREDENTIALS, STORAGE_USER } from "../../constants/storage";
-import { Credentials } from "../../domain/Credentials/credentials";
+import {
+  STORAGE_CONFIRMATION_CODE,
+  STORAGE_EMAIL,
+} from "../../constants/storage";
+import { Email } from "../../domain/Email/email";
 
-const CredentialsRegistryPage: React.FC = () => {
+const ConfirmationCodePage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
-  const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [email, setEmail] = useState<string>("");
+  const [confirmationCode, setConfirmationCode] = useState<string>("");
 
   const handleBackPress = () => {
-    router.replace("/");
+    router.back();
   };
 
   const handleAuxiliaryModalPress = () => {
@@ -47,24 +49,18 @@ const CredentialsRegistryPage: React.FC = () => {
     console.log("Labels selecionadas:", labels);
   };
 
-  const handleRegistry = async () => {
+  const handleValidationCode = async () => {
     try {
-      if (password === passwordConfirmation) {
-        setLoading(true);
-        await apiPost("/Credentials", { email, password });
-        console.log(password);
-        console.log(passwordConfirmation);
-
-        const response = await apiGet<Credentials>(
-          `/Credentials/${email}/${password}`
-        );
-        console.log(response);
-        AsyncStorage.setItem(
-          STORAGE_CREDENTIALS,
-          JSON.stringify(response.data)
-        ).then(() => router.push("/register"));
+      const value = await AsyncStorage.getItem(STORAGE_CONFIRMATION_CODE);
+      console.log(value);
+      if (value) {
+        if (confirmationCode === value) {
+          router.replace("/recovery-password/new-password");
+        } else {
+          setErrorModalVisible(true);
+        }
       } else {
-        setErrorModalVisible(true);
+        console.log("Nenhum valor encontrado no AsyncStorage");
       }
     } catch (err: any) {
       setErrorModalVisible(true);
@@ -73,13 +69,26 @@ const CredentialsRegistryPage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
+  const handleSendCode = async () => {
     try {
-      AsyncStorage.removeItem(STORAGE_USER);
-    } catch (error) {
-      console.error("Erro ao remover o ID do usuário:", error);
+      setLoading(true);
+      const value = await AsyncStorage.getItem(STORAGE_EMAIL);
+      if (value) {
+        const email: Email = JSON.parse(value);
+        const response = await apiGet(`/Credentials/RecoveryPassword/${email}`);
+        AsyncStorage.setItem(
+          STORAGE_CONFIRMATION_CODE,
+          JSON.stringify(response.data)
+        );
+      } else {
+        console.log("Nenhum valor encontrado no AsyncStorage");
+      }
+    } catch (err: any) {
+      setErrorModalVisible(true);
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -118,33 +127,26 @@ const CredentialsRegistryPage: React.FC = () => {
           >
             <View style={styles.formContainer}>
               <Input
-                label="E-mail"
+                label="Código de Validação"
                 autoCorrect={false}
-                placeholder="exemplo@exemplo.com"
-                value={email}
-                onChangeText={(value) => setEmail(value)}
+                placeholder="Informe aqui seu código de validação"
+                value={confirmationCode}
+                onChangeText={(value) => setConfirmationCode(value)}
                 style={styles.input}
               />
-              <Input
-                label="Senha"
-                autoCorrect={false}
-                placeholder="********"
-                secureTextEntry
-                value={password}
-                onChangeText={(value) => setPassword(value)}
-                style={styles.input}
-              />
-              <Input
-                label="Confirmação de senha"
-                autoCorrect={false}
-                placeholder="********"
-                secureTextEntry
-                value={passwordConfirmation}
-                onChangeText={(value) => setPasswordConfirmation(value)}
-                style={styles.input}
-              />
-              <Button onPress={handleRegistry} style={styles.button}>
-                PRÓXIMO
+              <Button
+                onPress={handleValidationCode}
+                loading={loading}
+                style={styles.button}
+              >
+                VALIDAR CÓDIGO
+              </Button>
+              <Button
+                onPress={handleSendCode}
+                loading={loading}
+                style={styles.button}
+              >
+                ENVIAR CÓDIGO NOVAMENTE
               </Button>
             </View>
           </Animated.View>
@@ -158,7 +160,7 @@ const CredentialsRegistryPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Senhas não estão iguais."
+        message="Código inválido, favor redigitar."
       />
     </SafeAreaView>
   );
@@ -187,4 +189,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CredentialsRegistryPage;
+export default ConfirmationCodePage;
