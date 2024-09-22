@@ -23,10 +23,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_PATIENT } from "../../constants/storage";
 import { Patient } from "../../domain/Patient/patient";
 
-const EmergencyPatientPage: React.FC = () => {
+const SchedulePatientPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
-  const [isSuccessModalVisible, setSuccessModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [date, setDate] = useState<string>("");
   const [patientId, setPatientId] = useState<number>(0);
@@ -35,8 +34,8 @@ const EmergencyPatientPage: React.FC = () => {
 
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
-  const [selectedSpecialty, setSelectedSpecialty] = useState("");
   const [messageModal, setMessageModal] = useState<string>("");
+  const [confirmForm, setConfirmForm] = useState<number>(0);
   const [specialities, setSpecialities] = useState<
     { id: number; label: string; comparativeId: number }[]
   >([]);
@@ -74,6 +73,15 @@ const EmergencyPatientPage: React.FC = () => {
     setModalVisible(false);
   };
 
+  const handleCloseErrorModal = () => {
+    if (confirmForm === 1) {
+      setErrorModalVisible(false);
+      router.replace("/home-patient");
+    } else {
+      setErrorModalVisible(false);
+    }
+  };
+
   async function handleSchedule() {
     if (!date || !freeTime) {
       setMessageModal("Selecione uma data e horário");
@@ -93,7 +101,28 @@ const EmergencyPatientPage: React.FC = () => {
       doctorId,
       patientId,
     });
-    router.replace("/home-patient");
+
+    const responseAppointment = await apiGet(
+      `/Appointment/doctorPatient/${doctorId}/${patientId}`
+    );
+    if (responseAppointment.data !== null) {
+      const appointmentId = responseAppointment.data;
+      console.log(dateTime);
+      const responseAppointmentPrice = await apiGet(
+        `/Doctor/price/${doctorId}`
+      );
+      if (responseAppointmentPrice.data !== null) {
+        const price = responseAppointmentPrice.data;
+        await apiPost("/Schedule", {
+          price,
+          scheduledDate: dateTime,
+          appointmentId,
+        });
+        setConfirmForm(1);
+        setMessageModal("Consulta agendada!");
+        setErrorModalVisible(true);
+      }
+    }
   }
 
   const handleSelectLabels = (labels: string[]) => {
@@ -115,11 +144,9 @@ const EmergencyPatientPage: React.FC = () => {
     const loadSpecialities = async () => {
       try {
         const value = await AsyncStorage.getItem(STORAGE_PATIENT);
-        console.log(value);
         if (value) {
           const patient: Patient = JSON.parse(value);
           setPatientId(patient.id);
-          console.log(patientId);
         } else {
           console.log("Nenhum valor encontrado no AsyncStorage");
         }
@@ -210,7 +237,7 @@ const EmergencyPatientPage: React.FC = () => {
           setFreeTimes(formattedFreeTime);
         } else {
           setFreeTimes([]);
-          setMessageModal("Erro ao selecionar os horários livres");
+          setMessageModal("Não foi possível selecionar os horários livres");
           setErrorModalVisible(true);
         }
       } catch (err: any) {
@@ -242,7 +269,7 @@ const EmergencyPatientPage: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
-        title="Minha Página"
+        title="Cadastrar Consulta"
         onBackPress={handleBackPress}
         auxiliaryModalPress={handleAuxiliaryModalPress}
       />
@@ -331,7 +358,7 @@ const EmergencyPatientPage: React.FC = () => {
       />
       <SimpleModal
         visible={isErrorModalVisible}
-        onClose={() => setErrorModalVisible(false)}
+        onClose={handleCloseErrorModal}
         message={messageModal}
       />
     </SafeAreaView>
@@ -373,4 +400,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default EmergencyPatientPage;
+export default SchedulePatientPage;

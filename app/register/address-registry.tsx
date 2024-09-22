@@ -96,7 +96,7 @@ const AddressRegistryPage: React.FC = () => {
       });
 
       router.replace({
-        pathname: "/register/phones-registry",
+        pathname: "/register/doctor-patient-register",
       });
     } catch (err: any) {
       setErrorModalVisible(true);

@@ -2,6 +2,6 @@ export interface Doctor {
   id: number;
   registryNumber: string;
   avaibalityHours: string;
-  consultationPrince: number;
+  consultationPrice: number;
   userId: number;
 }

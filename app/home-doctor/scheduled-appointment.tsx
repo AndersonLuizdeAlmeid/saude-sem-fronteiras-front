@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Linking,
+  KeyboardAvoidingView,
+  Animated,
+  Platform,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderPage from "../../components/HeaderPage";
 import { router } from "expo-router";
@@ -9,20 +16,22 @@ import CardIcon from "../../components/CardIcon";
 import WaitingListPage from "../../components/WaitingListPage";
 import SelectionModal from "../../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_PATIENT } from "../../constants/storage";
+import { STORAGE_DOCTOR } from "../../constants/storage";
 import { apiDelete, apiGet, apiPut } from "../../utils/api";
-import { Patient } from "../../domain/Patient/patient";
 import Button from "../../components/Button";
-import { openWhatsApp } from "../../utils/whatsapp";
+import { Doctor } from "../../domain/Doctor/doctor";
+import { User } from "../../domain/User/user";
 import SimpleModal from "../../components/Modal";
+import { openWhatsApp } from "../../utils/whatsapp";
 
 const ScheduledAppointmentPage: React.FC = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
-  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [patientId, setPatientId] = useState<number>(0);
   const [messageModal, setMessageModal] = useState<string>("");
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
+  const [opacity] = useState(new Animated.Value(0));
   const [consultations, setConsultations] = useState<
     { id: number; data: string; status: number }[]
   >([]);
@@ -39,7 +48,7 @@ const ScheduledAppointmentPage: React.FC = () => {
     router.replace("/home-doctor/appointments");
   };
 
-  const handleSelectConsultation = (consultation: any) => {
+  const handleSelectConsultation = async (consultation: any) => {
     setSelectedConsultation(consultation);
   };
 
@@ -49,18 +58,17 @@ const ScheduledAppointmentPage: React.FC = () => {
 
   const handleSelectLabels = (labels: string[]) => {
     setSelectedLabels(labels);
-    console.log("Labels selecionadas:", labels);
+    console.log("Labels selecionasdas:", labels);
   };
 
   const getAppointments = async () => {
     try {
-      const value = await AsyncStorage.getItem(STORAGE_PATIENT);
+      const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
       if (value) {
-        const patient: Patient = JSON.parse(value);
-        setPatientId(patient.id);
-        const response = await apiGet(`/Schedule/patient/${patient.id}`);
+        const doctor: Doctor = JSON.parse(value);
+
+        const response = await apiGet(`/Schedule/doctor/${doctor.id}`);
         if (response && Array.isArray(response.data)) {
-          // Função para formatar a data
           const formatDate = (dateString: string) => {
             const date = new Date(dateString);
             const options: Intl.DateTimeFormatOptions = {
@@ -80,6 +88,7 @@ const ScheduledAppointmentPage: React.FC = () => {
               currency: "BRL",
             });
           };
+          console.log(response.data);
           // Mapear os dados para a estrutura esperada com a data, preço e status formatados
           const formattedConsultations = response.data.map((item: any) => ({
             id: item.id,
@@ -94,11 +103,104 @@ const ScheduledAppointmentPage: React.FC = () => {
           console.log("Nenhum valor encontrado no AsyncStorage");
         }
       } else {
-        setMessageModal("Formato de resposta inesperado");
-        setErrorModalVisible(true);
+        console.error("Formato de resposta inesperado.");
       }
     } catch (error) {
-      setMessageModal("Erro ao buscar consultas:");
+      console.error("Erro ao buscar consultas:", error);
+    }
+  };
+
+  useEffect(() => {
+    getAppointments();
+  }, []);
+
+  const handleStartShift = async () => {
+    if (selectedConsultation) {
+      if (selectedConsultation && selectedConsultation.id) {
+        if (selectedConsultation.status === 2) {
+          const phoneNumber = await apiGet(
+            `/Schedule/patient/phone/${selectedConsultation.id}`
+          );
+          console.log(phoneNumber.data);
+          if (phoneNumber !== null) {
+            if (typeof phoneNumber.data === "string") {
+              // Verifique e formate o número de telefone, se necessário
+              const formattedPhoneNumber = formatPhoneNumber(phoneNumber.data);
+              openWhatsApp(
+                formattedPhoneNumber,
+                "Olá, sou o paciente e estou pronto para a consulta"
+              );
+              router.replace("/home-doctor");
+            } else {
+              console.log("O número de telefone não é uma string válida");
+            }
+          }
+        } else {
+          setMessageModal(
+            "Status do agendamento inválido para iniciar consulta."
+          );
+          setErrorModalVisible(true);
+        }
+      }
+    } else {
+      setMessageModal("Nenhuma consulta selecionada.");
+      setErrorModalVisible(true);
+    }
+  };
+
+  const formatPhoneNumber = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, "");
+
+    // Adiciona o código do país, se necessário (por exemplo, +55 para Brasil)
+    if (!cleaned.startsWith("55")) {
+      return `+55${cleaned}`;
+    }
+
+    return `+${cleaned}`;
+  };
+
+  const handleAcceptShift = async () => {
+    if (selectedConsultation && selectedConsultation.id) {
+      if (selectedConsultation.status === 1) {
+        const id = selectedConsultation.id;
+        const price = 0;
+        const status = 2;
+
+        await apiPut("/Schedule/", { id, price, status });
+        selectedConsultation.status = 2;
+
+        getAppointments();
+      } else {
+        setMessageModal("Status do agendamento inválido para aceitação.");
+        setErrorModalVisible(true);
+      }
+    } else {
+      setMessageModal("Nenhum agendamento selecionado");
+      setErrorModalVisible(true);
+    }
+  };
+
+  const handleFinishShift = async () => {
+    if (selectedConsultation && selectedConsultation.id) {
+      if (
+        selectedConsultation.status !== 1 &&
+        selectedConsultation.status !== 3 &&
+        selectedConsultation.status !== 4
+      ) {
+        const id = selectedConsultation.id;
+        const price = 0;
+        const status = 4;
+
+        await apiPut("/Schedule/", { id, price, status });
+        selectedConsultation.status = 4;
+
+        getAppointments();
+      } else {
+        setMessageModal("Status do agendamento inválido para finalização.");
+        setErrorModalVisible(true);
+      }
+    } else {
+      setMessageModal("Nenhum agendamento selecionado");
       setErrorModalVisible(true);
     }
   };
@@ -107,8 +209,8 @@ const ScheduledAppointmentPage: React.FC = () => {
     if (selectedConsultation && selectedConsultation.id) {
       try {
         if (
-          selectedConsultation.status === 2 ||
-          selectedConsultation.status === 1
+          selectedConsultation.status !== 3 &&
+          selectedConsultation.status !== 4
         ) {
           const id = selectedConsultation.id;
           const price = 0;
@@ -136,66 +238,17 @@ const ScheduledAppointmentPage: React.FC = () => {
             setSelectedConsultation(null);
           }
 
-          getAppointments();
+          getAppointments(); // Atualiza a lista de telefones
         } else {
-          setMessageModal("Status do agendamento inválido");
+          setMessageModal("Status do agendamento inválido para cancelamento.");
           setErrorModalVisible(true);
         }
       } catch (error) {
-        setMessageModal("Erro ao deletar consulta");
-        setErrorModalVisible(true);
+        console.error("Erro ao deletar consulta:", error);
       }
     } else {
-      setMessageModal("Nenhuma consulta selecionada para deletar");
-      setErrorModalVisible(true);
+      console.log("Nenhuma consulta selecionada para deletar");
     }
-  };
-
-  useEffect(() => {
-    getAppointments();
-  }, []);
-
-  const handleStartShift = async () => {
-    if (selectedConsultation) {
-      if (selectedConsultation && selectedConsultation.id) {
-        if (selectedConsultation.status === 2) {
-          const phoneNumber = await apiGet(
-            `/Schedule/doctor/phone/${selectedConsultation.id}`
-          );
-          if (phoneNumber !== null) {
-            if (typeof phoneNumber.data === "string") {
-              // Verifique e formate o número de telefone, se necessário
-              const formattedPhoneNumber = formatPhoneNumber(phoneNumber.data);
-              openWhatsApp(
-                formattedPhoneNumber,
-                "Olá, sou o paciente e estou pronto para a consulta"
-              );
-              router.replace("/home-patient");
-            } else {
-              setMessageModal("Problema com o número de telefone");
-              setErrorModalVisible(true);
-            }
-          }
-        } else {
-          setMessageModal("Status do agendamento inválido");
-          setErrorModalVisible(true);
-        }
-      }
-    } else {
-      setMessageModal("Nenhuma consulta selecionada");
-      setErrorModalVisible(true);
-    }
-  };
-
-  const formatPhoneNumber = (phone: string) => {
-    const cleaned = phone.replace(/\D/g, "");
-
-    // Adiciona o código do país, se necessário (por exemplo, +55 para Brasil)
-    if (!cleaned.startsWith("55")) {
-      return `+55${cleaned}`;
-    }
-
-    return `+${cleaned}`;
   };
 
   const items = [
@@ -209,10 +262,11 @@ const ScheduledAppointmentPage: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
-        title="Agendamentos"
+        title="Consultas Agendadas"
         onBackPress={handleBackPress}
         auxiliaryModalPress={handleAuxiliaryModalPress}
       />
+
       <View style={styles.content}>
         <ScrollView>
           {items.map((i) => (
@@ -225,6 +279,12 @@ const ScheduledAppointmentPage: React.FC = () => {
             consultations={consultations}
           />
         </ScrollView>
+        <Button onPress={handleAcceptShift} style={styles.button}>
+          ACEITAR CONSULTA
+        </Button>
+        <Button onPress={handleFinishShift} style={styles.button}>
+          FINALIZAR CONSULTA
+        </Button>
         <Button onPress={handleDeletetShift} style={styles.button}>
           CANCELAR AGENDAMENTO
         </Button>
@@ -248,12 +308,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.black,
   },
+  formContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollViewContent: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
   content: {
     alignItems: "center",
     justifyContent: "center",
   },
   button: {
-    marginTop: 20,
+    marginTop: 5,
     width: 250,
   },
 });

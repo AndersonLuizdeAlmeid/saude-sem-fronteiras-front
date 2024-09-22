@@ -64,7 +64,7 @@ export default function HomePatientPage() {
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
-        title="Minha Página"
+        title="Paciente"
         onBackPress={handleBackPress}
         auxiliaryModalPress={handleAuxiliaryModalPress}
       />

@@ -1,15 +1,16 @@
 import React, { useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderPage from "../../components/HeaderPage";
 import { router } from "expo-router";
 import { colors } from "../../constants/colors";
 import { ScrollView } from "react-native";
 import CardIcon from "../../components/CardIcon";
-import SelectionModal from "../../components/CustomModal"; // Importe o modal
+import SelectionModal from "../../components/CustomModal";
 
 const AppointmentsDoctorPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
+  const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   const handleBackPress = () => {
@@ -32,16 +33,16 @@ const AppointmentsDoctorPage: React.FC = () => {
   const items = [
     {
       text: "Emergencial",
-      icon: "user-md",
+      icon: "hospital",
       onPress: () => {
-        router.push("/home-doctor/emergency-appointment");
+        router.push("/home-doctor/appointments");
       },
     },
     {
-      text: "Agenda",
-      icon: "calendar-alt",
+      text: "Agendadas",
+      icon: "calendar-check",
       onPress: () => {
-        router.push("");
+        router.push("/home-doctor/scheduled-appointment");
       },
     },
   ];
@@ -49,9 +50,9 @@ const AppointmentsDoctorPage: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
-        title="Minha Página"
+        title="Consultas"
         onBackPress={handleBackPress}
-        auxiliaryModalPress={handleAuxiliaryModalPress} // Abre o modal ao clicar no botão auxiliar
+        auxiliaryModalPress={handleAuxiliaryModalPress}
       />
       <View style={styles.content}>
         <ScrollView>
@@ -75,12 +76,17 @@ const AppointmentsDoctorPage: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.black,
+    backgroundColor: colors.black, // Temporariamente troque para branco
   },
   content: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 20,
+  },
+  text: {
+    fontSize: 18,
+    color: colors.white,
   },
   separator: { height: 40 },
 });

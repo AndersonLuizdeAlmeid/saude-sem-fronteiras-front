@@ -1,11 +1,7 @@
 import { SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
 import CardIcon from "../../components/CardIcon";
-import Button from "../../components/Button";
 import { router } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_TOKEN } from "../../constants/storage";
 import React, { useState } from "react";
-import Page from "../../components/Page";
 import HeaderPage from "../../components/HeaderPage";
 import { colors } from "../../constants/colors";
 import SelectionModal from "../../components/CustomModal";
@@ -36,7 +32,7 @@ const AppointmentsPage: React.FC = () => {
       text: "Emergencial",
       icon: "hospital",
       onPress: () => {
-        router.push("/chat");
+        router.push("/home-patient/emergency-patient");
       },
     },
     {
@@ -58,7 +54,7 @@ const AppointmentsPage: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
-        title="Minha Página"
+        title="Consultas"
         onBackPress={handleBackPress}
         auxiliaryModalPress={handleAuxiliaryModalPress}
       />

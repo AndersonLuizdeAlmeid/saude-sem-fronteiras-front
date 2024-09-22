@@ -50,7 +50,7 @@ const HomePage: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
-        title="Minha Página"
+        title="Página Inicial"
         onBackPress={handleBackPress}
         auxiliaryModalPress={handleAuxiliaryModalPress}
       />
@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
   },
   text: {
     fontSize: 18,

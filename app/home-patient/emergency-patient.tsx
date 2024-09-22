@@ -1,36 +1,36 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  Animated,
-  SafeAreaView,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-} from "react-native";
-import ComboBox from "../../components/ComboBox"; // Atualize o caminho conforme necessário
-import { router } from "expo-router";
-import SelectionModal from "../../components/CustomModal";
-import Button from "../../components/Button";
+import { View, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderPage from "../../components/HeaderPage";
-import DateTimePickerModal from "react-native-modal-datetime-picker"; // Importar a biblioteca
+import { router } from "expo-router";
 import { colors } from "../../constants/colors";
+import { ScrollView } from "react-native";
+import CardIcon from "../../components/CardIcon";
+import WaitingListPage from "../../components/WaitingListPage";
+import SelectionModal from "../../components/CustomModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { STORAGE_PATIENT } from "../../constants/storage";
+import { apiDelete, apiGet, apiPut } from "../../utils/api";
+import { Patient } from "../../domain/Patient/patient";
+import Button from "../../components/Button";
+import { openWhatsApp } from "../../utils/whatsapp";
 import SimpleModal from "../../components/Modal";
 
 const EmergencyPatientPage: React.FC = () => {
+  const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
-  const [isSuccessModalVisible, setSuccessModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [date, setDate] = useState<string>("");
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
-
-  const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
-  const [opacity] = useState(new Animated.Value(0));
-  const [selectedSpecialty, setSelectedSpecialty] = useState("");
   const [messageModal, setMessageModal] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [date, setDate] = useState<Date>();
+  const [consultations, setConsultations] = useState<
+    { id: number; data: string; status: number }[]
+  >([]);
+  const [consultation, setConsultation] = useState<{
+    id: number;
+    description: string;
+  } | null>(null);
 
   const handleBackPress = () => {
     router.back();
@@ -40,133 +40,192 @@ const EmergencyPatientPage: React.FC = () => {
     setModalVisible(true);
   };
 
+  const handleSelectConsultation = (consultation: any) => {
+    setSelectedConsultation(consultation);
+  };
+
   const handleCloseModal = () => {
     setModalVisible(false);
   };
-
-  async function handleSchedule() {
-    // Verifica se todos os campos necessários estão preenchidos
-    if (selectedSpecialty && date) {
-      // Se tudo estiver preenchido corretamente, exibe o modal de sucesso
-      setMessageModal("Agendamento realizado com sucesso!");
-      setSuccessModalVisible(true);
-    } else {
-      // Se houver algum erro, exibe o modal de erro
-      setMessageModal("Erro ao realizar o agendamento. Verifique os campos.");
-      setErrorModalVisible(true);
-    }
-  }
 
   const handleSelectLabels = (labels: string[]) => {
     setSelectedLabels(labels);
     console.log("Labels selecionadas:", labels);
   };
 
-  const handleConfirm = (selectedDate: Date) => {
-    const formattedDate = selectedDate.toLocaleDateString(); // Formata a data conforme necessário
-    setDate(formattedDate);
-    setDatePickerVisibility(false);
+  const getAppointments = async () => {
+    try {
+      const value = await AsyncStorage.getItem(STORAGE_PATIENT);
+      if (value) {
+        const patient: Patient = JSON.parse(value);
+        const response = await apiGet(`/Emergency/patient/${patient.id}`);
+        if (response && Array.isArray(response.data)) {
+          const formatDate = (dateString: string) => {
+            const date = new Date(dateString);
+            const options: Intl.DateTimeFormatOptions = {
+              year: "numeric",
+              month: "numeric",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            };
+            return date.toLocaleDateString("pt-BR", options);
+          };
+
+          const formatPrice = (price: number) => {
+            return price.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            });
+          };
+
+          const formattedConsultations = response.data.map((item: any) => ({
+            id: item.id,
+            data: `${formatDate(item.date)} - Preço: ${formatPrice(
+              item.price
+            )}`, // Concatena a data com o preço
+            status: item.status,
+          }));
+
+          setConsultations(formattedConsultations);
+        } else {
+          console.log("Nenhum valor encontrado no AsyncStorage");
+        }
+      } else {
+        console.error("Formato de resposta inesperado.");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar consultas:", error);
+    }
   };
 
-  const showDatePicker = () => {
-    setDatePickerVisibility(true);
+  const handleDeletetShift = async () => {
+    setLoading(true);
+
+    if (selectedConsultation && selectedConsultation.id) {
+      try {
+        if (selectedConsultation.status === 1) {
+          const id = selectedConsultation.id;
+          const price = 0;
+          const status = 3;
+
+          const dateAwait = await apiGet<string>(
+            `/Appointment/dateAppointment/emergencyId/${selectedConsultation.id}`
+          );
+
+          if (dateAwait && dateAwait.data) {
+            // Ajuste a forma de acessar a data conforme necessário
+            const date = new Date(dateAwait.data);
+
+            if (isNaN(date.getTime())) {
+              console.error("Data inválida:", dateAwait.data);
+            } else {
+              const now = Date.now();
+              const differenceInMs = now - date.getTime();
+
+              const days = Math.floor(differenceInMs / (1000 * 60 * 60 * 24));
+              const hours = Math.floor(
+                (differenceInMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+              );
+              const minutes = Math.floor(
+                (differenceInMs % (1000 * 60 * 60)) / (1000 * 60)
+              );
+
+              const waitTime = `${days} dias, ${hours} horas e ${minutes} minutos`;
+              await apiPut("/Emergency/", { id, price, waitTime, status });
+            }
+          }
+
+          selectedConsultation.status = 3;
+          const updatedConsultations = consultations.filter(
+            (consultation) => consultation.id !== selectedConsultation.id
+          );
+          setConsultations(updatedConsultations);
+
+          if (updatedConsultations.length > 0) {
+            // Se houver itens restantes, selecione o próximo item
+            const nextIndex =
+              (consultations.findIndex(
+                (c) => c.id === selectedConsultation.id
+              ) +
+                1) %
+              updatedConsultations.length;
+            setSelectedConsultation(updatedConsultations[nextIndex]);
+          } else {
+            // Se não houver itens restantes, desmarque a seleção
+            setSelectedConsultation(null);
+          }
+
+          getAppointments();
+        } else {
+          setMessageModal("Status do agendamento inválido");
+          setErrorModalVisible(true);
+          setLoading(false);
+        }
+      } catch (error) {
+        setMessageModal("Erro ao deletar consulta");
+        setErrorModalVisible(true);
+        setLoading(false);
+      }
+    } else {
+      setMessageModal("Nenhuma consulta selecionada para deletar");
+      setErrorModalVisible(true);
+      setLoading(false);
+    }
+    setLoading(false);
   };
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.spring(offset.y, {
-        toValue: 0,
-        speed: 4,
-        useNativeDriver: true,
-        bounciness: 20,
-      }),
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    getAppointments();
   }, []);
 
-  const specialties = ["Cardiologia", "Odontologia", "Dermatologia"];
+  const handleStartShift = async () => {
+    router.replace("/home-patient/screenings-patient");
+  };
+
+  const items = [
+    {
+      text: "Iniciar Consulta Emergencial",
+      icon: "comments",
+      onPress: handleStartShift,
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
-        title="Minha Página"
+        title="Emergências"
         onBackPress={handleBackPress}
         auxiliaryModalPress={handleAuxiliaryModalPress}
       />
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-      >
-        <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          <Animated.View
-            style={[
-              styles.formContainer,
-              { opacity: opacity, transform: [{ translateY: offset.y }] },
-            ]}
-          >
-            <View style={styles.formContainer}>
-              <View style={styles.container}>
-                <ComboBox
-                  label="Especialidade"
-                  data={specialties}
-                  onSelect={setSelectedSpecialty}
-                  placeholder="Escolha a Especialidade"
-                />
-              </View>
-              <View style={styles.container}>
-                <ComboBox
-                  label="Médico"
-                  data={specialties}
-                  onSelect={setSelectedSpecialty}
-                  placeholder="Escolha a Especialidade"
-                />
-              </View>
-              <TouchableOpacity onPress={showDatePicker}>
-                <Text style={styles.inputName}>Data da Consulta</Text>
-                <View style={styles.input}>
-                  <Text style={styles.inputText}>
-                    {date || "Aperte aqui para adicionar a data"}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              <View style={styles.container}>
-                <ComboBox
-                  label="Horário"
-                  data={specialties}
-                  onSelect={setSelectedSpecialty}
-                  placeholder="Escolha a Especialidade"
-                />
-              </View>
-              <Button onPress={handleSchedule} style={styles.button}>
-                AGENDAR
-              </Button>
-            </View>
-          </Animated.View>
+      <View style={styles.content}>
+        <ScrollView>
+          {items.map((i) => (
+            <React.Fragment key={i.text}>
+              <CardIcon {...i} />
+            </React.Fragment>
+          ))}
+          <WaitingListPage
+            onSelect={handleSelectConsultation}
+            consultations={consultations}
+          />
         </ScrollView>
-      </KeyboardAvoidingView>
+        <Button
+          onPress={handleDeletetShift}
+          style={styles.button}
+          loading={loading}
+        >
+          CANCELAR AGENDAMENTO
+        </Button>
+      </View>
       <SelectionModal
         visible={isModalVisible}
         onClose={handleCloseModal}
         onSelect={handleSelectLabels}
       />
-      <DateTimePickerModal
-        isVisible={isDatePickerVisible}
-        mode="date"
-        onConfirm={handleConfirm}
-        onCancel={() => setDatePickerVisibility(false)}
-      />
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message={messageModal}
-      />
-      <SimpleModal
-        visible={isSuccessModalVisible}
-        onClose={() => setSuccessModalVisible(false)}
         message={messageModal}
       />
     </SafeAreaView>
@@ -178,29 +237,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.black,
   },
-  scrollViewContent: {
-    paddingVertical: 20,
+  content: {
     alignItems: "center",
-  },
-  formContainer: {
     justifyContent: "center",
-    alignItems: "center",
-  },
-  input: {
-    width: 320,
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: colors.gray_2,
-    borderColor: colors.white,
-    borderWidth: 2,
-    borderRadius: 5,
-  },
-  inputText: {
-    color: colors.white,
-  },
-  inputName: {
-    color: colors.white,
-    paddingVertical: 5,
   },
   button: {
     marginTop: 20,

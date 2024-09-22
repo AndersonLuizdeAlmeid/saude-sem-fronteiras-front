@@ -31,7 +31,7 @@ const PatientRegistryPage: React.FC = () => {
   const [medicalCondition, setMedicalCondition] = useState("");
   const [previousSurgeries, setPreviousSurgeries] = useState("");
   const [medicines, setMedicines] = useState("");
-  const [emergencyNumber, seteEmergencyNumber] = useState("");
+  const [emergencyNumber, setEmergencyNumber] = useState("");
   const [userId, setUserId] = useState<number>(0);
   const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -91,6 +91,45 @@ const PatientRegistryPage: React.FC = () => {
 
     fetchUser();
   }, []);
+
+  const validatePhone = (value: string) => {
+    const cleanPhone = value.replace(/\D/g, "");
+    if (cleanPhone.length < 12 || cleanPhone.length > 13) return false;
+    if (!cleanPhone.startsWith("55")) return false;
+
+    return true;
+  };
+
+  const formatPhone = (value: string) => {
+    const cleanPhone = value.replace(/\D/g, "");
+    if (cleanPhone.length < 12 || cleanPhone.length > 13) return value;
+
+    if (cleanPhone.length === 13) {
+      return cleanPhone.replace(
+        /(\d{2})(\d{2})(\d{5})(\d{4})/,
+        "($1) $2 $3-$4"
+      );
+    } else {
+      return cleanPhone.replace(
+        /(\d{2})(\d{2})(\d{4})(\d{4})/,
+        "($1) $2 $3-$4"
+      );
+    }
+  };
+
+  const handlePhoneInput = (
+    value: string,
+    setTime: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    // Valida o telefone
+    if (validatePhone(value)) {
+      const formattedPhone = formatPhone(value);
+      setEmergencyNumber(formattedPhone);
+    } else {
+      setErrorModalVisible(true);
+      setEmergencyNumber("");
+    }
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -193,8 +232,11 @@ const PatientRegistryPage: React.FC = () => {
                 autoCorrect={false}
                 placeholder="54997020294"
                 value={emergencyNumber}
+                onBlur={() =>
+                  handlePhoneInput(emergencyNumber, setEmergencyNumber)
+                }
                 onChangeText={(value) => {
-                  seteEmergencyNumber(value);
+                  setEmergencyNumber(value);
                 }}
                 style={styles.input}
               />

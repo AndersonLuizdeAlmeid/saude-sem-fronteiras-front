@@ -13,6 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_DOCTOR, STORAGE_USER } from "../../constants/storage";
 import { User } from "../../domain/User/user";
 import SelectionModal from "../../components/CustomModal";
+import { Doctor } from "../../domain/Doctor/doctor";
 
 const SpecialitiesRegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -23,6 +24,7 @@ const SpecialitiesRegistryPage: React.FC = () => {
   const [opacity] = useState(new Animated.Value(0));
   const [description, setDescription] = useState("");
   const [userId, setUserId] = useState<number>(0);
+  const [doctorId, setDoctorId] = useState<number>(0);
   const [consultations, setConsultations] = useState<
     { id: number; data: string }[]
   >([]);
@@ -85,20 +87,27 @@ const SpecialitiesRegistryPage: React.FC = () => {
 
   const getSpecialitiesByDoctorId = async () => {
     try {
-      const doctorId = await AsyncStorage.getItem(STORAGE_DOCTOR);
-      const response = await apiGet(`/Speciality/${doctorId}`);
-      if (response && Array.isArray(response.data)) {
-        // Mapear os dados para a estrutura esperada
-        const formattedConsultations = response.data.map((item: any) => ({
-          id: item.id,
-          data: item.description,
-        }));
-        setConsultations(formattedConsultations);
+      const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
+      if (value) {
+        console.log("valuea");
+        const doctor: Doctor = JSON.parse(value);
+        console.log("Doctor recuperado:", doctor); // Adicione isso para verificar o valor
+        setDoctorId(doctor.id); // Certifique-se de que este valor está correto
+        const response = await apiGet(`/Speciality/${doctor.id}`);
+        if (response && Array.isArray(response.data)) {
+          const formattedConsultations = response.data.map((item: any) => ({
+            id: item.id,
+            data: item.description,
+          }));
+          setConsultations(formattedConsultations);
+        } else {
+          console.error("Formato de resposta inespserado:", response);
+        }
       } else {
-        console.error("Formato de respsosta inesperado:", response);
+        console.log("Nenhum valor encontrado no AsyncStorage");
       }
     } catch (error) {
-      console.error("Erro ao buscar consultas:", error);
+      console.error("Erro ao buscar especialidades:", error);
     }
   };
 
@@ -125,7 +134,7 @@ const SpecialitiesRegistryPage: React.FC = () => {
 
         getSpecialitiesByDoctorId(); // Atualiza a lista de telefones
       } catch (error) {
-        console.error("Erro ao deletar consulta:", error);
+        console.error("Erro ao delsetar consulta:", error);
       }
     } else {
       console.log("Nenhuma consulta selecionada para deletar");
@@ -134,12 +143,12 @@ const SpecialitiesRegistryPage: React.FC = () => {
 
   const handleSavetShift = async () => {
     if (description.trim()) {
-      const doctorId = await AsyncStorage.getItem(STORAGE_DOCTOR);
+      console.log(doctorId);
       await apiPost("/Speciality", {
         description,
         doctorId,
       });
-      console.log(description);
+      console.log("doctorId");
       getSpecialitiesByDoctorId();
       setDescription(" ");
     } else {

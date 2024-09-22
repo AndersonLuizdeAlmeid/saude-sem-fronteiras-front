@@ -67,8 +67,8 @@ const DoctorRegistryPage: React.FC = () => {
         userId,
       });
 
-      const response = await apiGet<Doctor>(`/Users/credentialsId/${userId}`);
-      AsyncStorage.setItem(STORAGE_USER, JSON.stringify(response.data)).then(
+      const response = await apiGet<Doctor>(`/Doctor/id/${userId}`);
+      AsyncStorage.setItem(STORAGE_DOCTOR, JSON.stringify(response.data)).then(
         () => router.push("/register/doctor-speciality")
       );
     } catch (err: any) {
@@ -124,7 +124,7 @@ const DoctorRegistryPage: React.FC = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
+        const value = await AsyncStorage.getItem(STORAGE_USER);
         if (value) {
           const user: User = JSON.parse(value);
           setUserId(user.id);
@@ -198,7 +198,8 @@ const DoctorRegistryPage: React.FC = () => {
                 autoCorrect={false}
                 placeholder="18:00"
                 value={initialHour}
-                onChangeText={(value) => handleTimeInput(value, setInitialHour)}
+                onChangeText={setInitialHour} // Permite que o usuário insira o valor sem formatação
+                onBlur={() => handleTimeInput(initialHour, setInitialHour)} // Formatação quando o campo perde o foco
                 style={styles.input}
               />
               <Input
@@ -206,7 +207,8 @@ const DoctorRegistryPage: React.FC = () => {
                 autoCorrect={false}
                 placeholder="06:00"
                 value={finalHour}
-                onChangeText={(value) => handleTimeInput(value, setFinalHour)}
+                onChangeText={setFinalHour} // Permite que o usuário insira o valor sem formatação
+                onBlur={() => handleTimeInput(finalHour, setFinalHour)} // Formatação quando o campo perde o foco
                 style={styles.input}
               />
               <View style={styles.daysOfWeekContainer}>
