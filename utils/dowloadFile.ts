@@ -3,7 +3,11 @@ import * as Sharing from "expo-sharing";
 import { Platform } from "react-native";
 import * as MediaLibrary from "expo-media-library";
 
-export const downloadAndOpenFile = async (url: string, fileName: string) => {
+// Função para salvar o atestado gerado como um arquivo local e permitir compartilhamento ou download
+export const downloadAndOpenDocument = async (
+  certificateContent: string, // Conteúdo do atestado gerado
+  fileName: string // Nome do arquivo (ex: "atestado.txt")
+) => {
   try {
     // Solicita a permissão de armazenamento no Android
     const permissionGranted = await requestStoragePermission();
@@ -15,28 +19,33 @@ export const downloadAndOpenFile = async (url: string, fileName: string) => {
       return;
     }
 
+    // Define o caminho do arquivo local
     const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-    const download = await FileSystem.downloadAsync(url, fileUri);
 
-    if (download.status === 200) {
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(download.uri);
-      } else {
-        console.log("Compartilhamento não disponível.");
-      }
+    // Grava o conteúdo do atestado no arquivo
+    await FileSystem.writeAsStringAsync(fileUri, certificateContent, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    console.log("Arquivo gravado com sucesso:", fileUri);
+
+    // Verifica se o compartilhamento está disponível
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(fileUri);
     } else {
-      console.log("Falha ao baixar o arquivo:", download.status);
+      console.log("Compartilhamento não disponível.");
     }
   } catch (error) {
-    console.error("Erro ao baixar o arquivo:", error);
+    console.error("Erro ao salvar e abrir o arquivo:", error);
   }
 };
 
+// Função para solicitar permissão de armazenamento (necessária no Android)
 async function requestStoragePermission() {
   if (Platform.OS === "android") {
     const { status } = await MediaLibrary.requestPermissionsAsync();
     console.log("Status da permissão de armazenamento:", status);
     return status === "granted";
   }
-  return true;
+  return true; // No iOS, não é necessário pedir permissão
 }

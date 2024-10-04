@@ -130,6 +130,7 @@ const PerfilPatientPage: React.FC = () => {
 
       router.replace("/home-patient");
     } catch (err: any) {
+      console.log("FERROU");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -167,6 +168,15 @@ const PerfilPatientPage: React.FC = () => {
     setSelectedLabels(labels);
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // Mês começa do 0
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -178,7 +188,7 @@ const PerfilPatientPage: React.FC = () => {
           setName(user.name);
           setCpf(user.cpf);
           setMotherName(user.motherName);
-          setDateOfBirth(user.dateBirth);
+          setDateOfBirth(formatDate(user.dateBirth));
           setGender(user.gender);
           setLanguage(user.language);
 
@@ -224,6 +234,7 @@ const PerfilPatientPage: React.FC = () => {
     };
 
     fetchUser();
+    loadCountries();
   }, []);
 
   useEffect(() => {
@@ -234,6 +245,7 @@ const PerfilPatientPage: React.FC = () => {
     } else {
       setFilteredStates(allStates);
     }
+    loadStates();
   }, [country]);
 
   useEffect(() => {
@@ -244,6 +256,7 @@ const PerfilPatientPage: React.FC = () => {
     } else {
       setFilteredCities(allCities);
     }
+    loadCities();
   }, [state]);
 
   const loadCountries = async () => {
@@ -262,9 +275,11 @@ const PerfilPatientPage: React.FC = () => {
         setCountries(formattedCountries);
       } else {
         setCountries([]);
+        console.log("KKKKKKKKKKKKKKKKKKKKK");
         setErrorModalVisible(true);
       }
     } catch (err: any) {
+      console.log("K");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -286,9 +301,11 @@ const PerfilPatientPage: React.FC = () => {
         setAllStates(formattedStates);
       } else {
         setAllStates([]);
+        console.log("KKKKKK");
         setErrorModalVisible(true);
       }
     } catch (err: any) {
+      console.log("KKKK");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -310,9 +327,11 @@ const PerfilPatientPage: React.FC = () => {
         setAllCities(formattedCities);
       } else {
         setAllCities([]);
+        console.log("KKK");
         setErrorModalVisible(true);
       }
     } catch (err: any) {
+      console.log("KK");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);

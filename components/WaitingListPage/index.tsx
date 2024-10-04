@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,8 +12,15 @@ import { colors } from "../../constants/colors";
 const WaitingListPage: React.FC<{
   onSelect: (item: any) => void;
   consultations: { id: number; data: string; status: number }[]; // Adiciona o status
-}> = ({ onSelect, consultations }) => {
+  resetSelection: boolean;
+}> = ({ onSelect, consultations, resetSelection }) => {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (resetSelection) {
+      setSelectedIndex(null);
+    }
+  }, [resetSelection]);
 
   const handleSelectConsultation = (index: number, item: any) => {
     setSelectedIndex(index);

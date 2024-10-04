@@ -38,8 +38,6 @@ export default function LoginPage() {
         password,
       });
 
-      console.log(email);
-      console.log(password);
       await AsyncStorage.setItem(STORAGE_TOKEN, response.data);
       const CredentialsResponse = await apiGet<Credentials>(
         `/Credentials/${email}/${password}`
@@ -77,7 +75,6 @@ export default function LoginPage() {
           STORAGE_PATIENT,
           JSON.stringify(patientResponse.data)
         );
-        console.log(patientResponse.data);
         router.replace("/home-patient");
       } else {
         setErrorModalVisible(true);
@@ -94,7 +91,7 @@ export default function LoginPage() {
   }
 
   async function handleRecoveryPassword() {
-    router.replace("/register/credentials-registry");
+    router.replace("/recovery-password");
   }
 
   useEffect(() => {

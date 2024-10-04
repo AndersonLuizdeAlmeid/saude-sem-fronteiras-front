@@ -39,6 +39,13 @@ const HomePage: React.FC = () => {
       },
     },
     {
+      text: "Exames, receitas e atestados",
+      icon: "bars",
+      onPress: () => {
+        router.push("/home-doctor/documents-doctor");
+      },
+    },
+    {
       text: "Faturas",
       icon: "dollar-sign",
       onPress: () => {

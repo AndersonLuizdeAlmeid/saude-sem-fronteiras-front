@@ -18,6 +18,7 @@ import SimpleModal from "../../components/Modal";
 
 const EmergencyPatientPage: React.FC = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
+  const [resetSelection, setResetSelection] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
@@ -57,8 +58,9 @@ const EmergencyPatientPage: React.FC = () => {
     try {
       const value = await AsyncStorage.getItem(STORAGE_PATIENT);
       if (value) {
+        console.log(value);
         const patient: Patient = JSON.parse(value);
-        const response = await apiGet(`/Emergency/patient/${patient.id}`);
+        const response = await apiGet(`/Emergency/patient/list/${patient.id}`);
         if (response && Array.isArray(response.data)) {
           const formatDate = (dateString: string) => {
             const date = new Date(dateString);
@@ -185,7 +187,7 @@ const EmergencyPatientPage: React.FC = () => {
 
   const items = [
     {
-      text: "Iniciar Consulta Emergencial",
+      text: "Criar Consulta Emergencial",
       icon: "comments",
       onPress: handleStartShift,
     },
@@ -208,6 +210,7 @@ const EmergencyPatientPage: React.FC = () => {
           <WaitingListPage
             onSelect={handleSelectConsultation}
             consultations={consultations}
+            resetSelection={resetSelection}
           />
         </ScrollView>
         <Button

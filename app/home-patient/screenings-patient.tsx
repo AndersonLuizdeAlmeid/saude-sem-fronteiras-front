@@ -67,7 +67,6 @@ const ScreeningPatientPage: React.FC = () => {
       const duration = 0;
       const doctorId = 0;
       const dateTime = getCurrentDateTime();
-      console.log(dateTime);
 
       const value = await AsyncStorage.getItem(STORAGE_PATIENT);
 
@@ -81,7 +80,7 @@ const ScreeningPatientPage: React.FC = () => {
           doctorId,
           patientId,
         });
-        console.log(patientId);
+
         const response = await apiGet(
           `/Appointment/lastAppointment/patient/${patientId}`
         );

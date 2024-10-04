@@ -53,14 +53,6 @@ export default function HomePatientPage() {
     },
   ];
 
-  const header = {
-    text: "Consultas",
-    icon: "notes-medical",
-    onPress: () => {
-      router.push("/home/products");
-    },
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage

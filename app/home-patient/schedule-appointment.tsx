@@ -132,7 +132,16 @@ const SchedulePatientPage: React.FC = () => {
 
   const handleConfirm = (selectedDate: Date) => {
     const formattedDate = selectedDate.toISOString().split("T")[0]; // Formato YYYY-MM-DD
-    setDate(formattedDate);
+    const currentDate = new Date();
+
+    if (selectedDate > currentDate) {
+      setDate(formattedDate);
+    } else {
+      setMessageModal("Data da consulta tem que ser maior que hoje.");
+      setErrorModalVisible(true);
+      setDate("");
+    }
+
     setDatePickerVisibility(false);
   };
 
@@ -239,6 +248,7 @@ const SchedulePatientPage: React.FC = () => {
           setFreeTimes([]);
           setMessageModal("Não foi possível selecionar os horários livres");
           setErrorModalVisible(true);
+          setDate("");
         }
       } catch (err: any) {
         //setErrorModalVisible(true);

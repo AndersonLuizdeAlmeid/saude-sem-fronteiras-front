@@ -35,7 +35,7 @@ const AppointmentsDoctorPage: React.FC = () => {
       text: "Emergencial",
       icon: "hospital",
       onPress: () => {
-        router.push("/home-doctor/appointments");
+        router.push("/home-doctor/emergency-appointment");
       },
     },
     {

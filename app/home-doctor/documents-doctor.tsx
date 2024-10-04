@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderPage from "../../components/HeaderPage";
 import { router } from "expo-router";
@@ -8,7 +8,7 @@ import { ScrollView } from "react-native";
 import CardIcon from "../../components/CardIcon";
 import SelectionModal from "../../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_DOCTOR, STORAGE_PATIENT } from "../../constants/storage";
+import { STORAGE_DOCTOR } from "../../constants/storage";
 import { apiDelete, apiGet } from "../../utils/api";
 import SimpleModal from "../../components/Modal";
 import WaitingListPageDocument from "../../components/WaitingListPageDocument";
@@ -18,9 +18,8 @@ import { CertificateShow } from "../../domain/Certificate/certificateShow";
 import { downloadAndOpenDocument } from "../../utils/dowloadFile";
 import { ExamShow } from "../../domain/Exam/examShow";
 import { PrescriptionShow } from "../../domain/Prescription/prescriptionShow";
-import { Patient } from "../../domain/Patient/patient";
 
-const DocumentsPatientPage: React.FC = () => {
+const DocumentsDoctorPage: React.FC = () => {
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
   const [resetSelection, setResetSelection] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -28,7 +27,6 @@ const DocumentsPatientPage: React.FC = () => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [documentId, setDocumentId] = useState<number>(0);
   const [type, setType] = useState<number>(0);
-
   const [messageModal, setMessageModal] = useState<string>("");
   const [documents, setDocuments] = useState<
     { id: number; data: string; type: number }[]
@@ -37,7 +35,6 @@ const DocumentsPatientPage: React.FC = () => {
     id: number;
     description: string;
   } | null>(null);
-  const [filter, setFilter] = useState<number>(1);
 
   const handleBackPress = () => {
     router.back();
@@ -62,9 +59,14 @@ const DocumentsPatientPage: React.FC = () => {
     console.log("Labels selecionadas:", labels);
   };
 
-  const resetDocumentSelection = () => {
-    setResetSelection(true); // Ativa reset
-  };
+  useEffect(() => {
+    if (resetSelection) {
+      setSelectedDocument(null);
+      setDocumentId(0);
+      setType(0);
+      setResetSelection(false); // Reseta o controlador após o reset
+    }
+  }, [resetSelection]);
 
   const generateMedicalCertificate = (
     name: string,
@@ -156,22 +158,13 @@ const DocumentsPatientPage: React.FC = () => {
     `;
   };
 
-  useEffect(() => {
-    if (resetSelection) {
-      setSelectedDocument(null);
-      setDocumentId(0);
-      setType(0);
-      setResetSelection(false); // Reseta o controlador após o reset
-    }
-  }, [resetSelection]);
-
   //mudar para documents
   const getDocuments = async () => {
     try {
-      const value = await AsyncStorage.getItem(STORAGE_PATIENT);
+      const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
       if (value) {
-        const patient: Patient = JSON.parse(value);
-        const response = await apiGet(`/Document/patient/${patient.id}`);
+        const doctor: Doctor = JSON.parse(value);
+        const response = await apiGet(`/Document/doctor/${doctor.id}`);
         if (response && Array.isArray(response.data)) {
           const formatDate = (dateString: string) => {
             const date = new Date(dateString);
@@ -421,48 +414,54 @@ const DocumentsPatientPage: React.FC = () => {
         await apiDelete(`/Certificate/${selectedDocument.id}`);
         await apiDelete(`/Document/${selectedDocument.id}`);
 
+        selectedDocument.status = 3;
         const updatedDocuments = documents.filter(
           (document) => document.id !== selectedDocument.id
         );
         setDocuments(updatedDocuments);
 
-        // Limpar a seleção após exclusão
-        setSelectedDocument(null);
-        setDocumentId(0);
-        setType(0);
-        setResetSelection(true); // Reseta a seleção de documentos
+        if (updatedDocuments.length > 0) {
+          // Se houver itens restantes, selecione o próximo item
+          const nextIndex =
+            (documents.findIndex((c) => c.id === selectedDocument.id) + 1) %
+            updatedDocuments.length;
+          setSelectedDocument(updatedDocuments[nextIndex]);
+        } else {
+          // Se não houver itens restantes, desmarque a seleção
+          setSelectedDocument(null);
+        }
 
         getDocuments();
+        setResetSelection(true);
       } catch (error) {
-        setMessageModal("Erro ao deletar o documento.");
+        setMessageModal("Erro ao deletar consulta");
         setErrorModalVisible(true);
       }
+    } else {
+      setMessageModal("Nenhuma consulta selecionada para deletar");
+      setErrorModalVisible(true);
     }
   };
 
   useEffect(() => {
     getDocuments();
-    if (selectedDocument === null) {
-      handleSelectDocument;
-    }
   }, []);
 
   useEffect(() => {
     //    setDocumentId(selectedDocument.id);
   }, [document]);
 
-  const filterDocuments = (documents: any[]) => {
-    if (!filter || filter < 1 || filter > 3) {
-      setMessageModal("Selecione um tipo de documento válido.");
-      setErrorModalVisible(true);
-      return documents; // Retorna todas as consultas se o filtro for inválido
-    }
-    const filtered = documents.filter((document) => {
-      return document.type === filter;
-    });
-
-    return filtered;
+  const handleCreateDocument = () => {
+    router.replace("/home-doctor/document-choose-create");
   };
+
+  const items = [
+    {
+      text: "Gerar Documento",
+      icon: "file-import",
+      onPress: handleCreateDocument,
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -472,39 +471,15 @@ const DocumentsPatientPage: React.FC = () => {
         auxiliaryModalPress={handleAuxiliaryModalPress}
       />
       <View style={styles.content}>
-        <View style={styles.filterContainer}>
-          <Button
-            onPress={() => {
-              setFilter(1);
-              resetDocumentSelection();
-            }}
-            style={filter === 1 ? styles.activeButton : styles.buttonPrincipal}
-          >
-            Atestado
-          </Button>
-          <Button
-            onPress={() => {
-              setFilter(2);
-              resetDocumentSelection();
-            }}
-            style={filter === 2 ? styles.activeButton : styles.buttonPrincipal}
-          >
-            Exame
-          </Button>
-          <Button
-            onPress={() => {
-              setFilter(3);
-              resetDocumentSelection();
-            }}
-            style={filter === 3 ? styles.activeButton : styles.buttonPrincipal}
-          >
-            Receita
-          </Button>
-        </View>
         <ScrollView>
+          {items.map((i) => (
+            <React.Fragment key={i.text}>
+              <CardIcon {...i} />
+            </React.Fragment>
+          ))}
           <WaitingListPageDocument
             onSelect={handleSelectDocument}
-            consultations={filterDocuments(documents)}
+            consultations={documents}
             resetSelection={resetSelection}
           />
         </ScrollView>
@@ -552,22 +527,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 5, // Adiciona margem horizontal entre os botões
     flex: 1, // Faz com que os botões ocupem espaço igual
   },
-  buttonPrincipal: {
-    marginTop: 5,
-    width: 100,
-  },
-  filterContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    maxWidth: 150,
-    marginBottom: 10,
-    paddingHorizontal: 15,
-  },
-  activeButton: {
-    margin: 5,
-    backgroundColor: colors.gray_1,
-  },
 });
 
-export default DocumentsPatientPage;
+export default DocumentsDoctorPage;

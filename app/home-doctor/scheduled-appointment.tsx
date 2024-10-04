@@ -26,6 +26,7 @@ import { openWhatsApp } from "../../utils/whatsapp";
 
 const ScheduledAppointmentPage: React.FC = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
+  const [resetSelection, setResetSelection] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [messageModal, setMessageModal] = useState<string>("");
@@ -45,7 +46,7 @@ const ScheduledAppointmentPage: React.FC = () => {
   };
 
   const handleAuxiliaryModalPress = () => {
-    router.replace("/home-doctor/appointments");
+    setModalVisible(true);
   };
 
   const handleSelectConsultation = async (consultation: any) => {
@@ -59,6 +60,10 @@ const ScheduledAppointmentPage: React.FC = () => {
   const handleSelectLabels = (labels: string[]) => {
     setSelectedLabels(labels);
     console.log("Labels selecionasdas:", labels);
+  };
+
+  const handleCloseErrorModal = () => {
+    setErrorModalVisible(false);
   };
 
   const getAppointments = async () => {
@@ -88,8 +93,7 @@ const ScheduledAppointmentPage: React.FC = () => {
               currency: "BRL",
             });
           };
-          console.log(response.data);
-          // Mapear os dados para a estrutura esperada com a data, preço e status formatados
+
           const formattedConsultations = response.data.map((item: any) => ({
             id: item.id,
             data: `${formatDate(item.date)} - Preço: ${formatPrice(
@@ -100,40 +104,55 @@ const ScheduledAppointmentPage: React.FC = () => {
 
           setConsultations(formattedConsultations);
         } else {
+          setMessageModal("Problema ao buscar os dados do médico.");
+          setErrorModalVisible(true);
           console.log("Nenhum valor encontrado no AsyncStorage");
         }
       } else {
-        console.error("Formato de resposta inesperado.");
+        setMessageModal("Formato de resposta inesperado.");
+        setErrorModalVisible(true);
       }
     } catch (error) {
-      console.error("Erro ao buscar consultas:", error);
+      setMessageModal("Erro ao buscar consultas.");
+      setErrorModalVisible(true);
     }
   };
 
   useEffect(() => {
     getAppointments();
+    setResetSelection(true);
   }, []);
 
   const handleStartShift = async () => {
     if (selectedConsultation) {
       if (selectedConsultation && selectedConsultation.id) {
         if (selectedConsultation.status === 2) {
-          const phoneNumber = await apiGet(
-            `/Schedule/patient/phone/${selectedConsultation.id}`
+          const validateDate = await apiGet<number>(
+            `/Appointment/scheduled/validation/${selectedConsultation.id}`
           );
-          console.log(phoneNumber.data);
-          if (phoneNumber !== null) {
-            if (typeof phoneNumber.data === "string") {
-              // Verifique e formate o número de telefone, se necessário
-              const formattedPhoneNumber = formatPhoneNumber(phoneNumber.data);
-              openWhatsApp(
-                formattedPhoneNumber,
-                "Olá, sou o paciente e estou pronto para a consulta"
-              );
-              router.replace("/home-doctor");
-            } else {
-              console.log("O número de telefone não é uma string válida");
+          if (validateDate.data > 0) {
+            const phoneNumber = await apiGet(
+              `/Schedule/patient/phone/${selectedConsultation.id}`
+            );
+            if (phoneNumber !== null) {
+              if (typeof phoneNumber.data === "string") {
+                // Verifique e formate o número de telefone, se necessário
+                const formattedPhoneNumber = formatPhoneNumber(
+                  phoneNumber.data
+                );
+                openWhatsApp(
+                  formattedPhoneNumber,
+                  "Olá, sou o paciente e estou pronto para a consulta"
+                );
+                router.replace("/home-doctor");
+              } else {
+                setMessageModal("O número de telefone não é uma texto válida.");
+                setErrorModalVisible(true);
+              }
             }
+          } else {
+            setMessageModal("Consulta não pode ser iniciada ainda.");
+            setErrorModalVisible(true);
           }
         } else {
           setMessageModal(
@@ -170,6 +189,7 @@ const ScheduledAppointmentPage: React.FC = () => {
         selectedConsultation.status = 2;
 
         getAppointments();
+        setResetSelection(true);
       } else {
         setMessageModal("Status do agendamento inválido para aceitação.");
         setErrorModalVisible(true);
@@ -195,6 +215,7 @@ const ScheduledAppointmentPage: React.FC = () => {
         selectedConsultation.status = 4;
 
         getAppointments();
+        setResetSelection(true);
       } else {
         setMessageModal("Status do agendamento inválido para finalização.");
         setErrorModalVisible(true);
@@ -238,18 +259,29 @@ const ScheduledAppointmentPage: React.FC = () => {
             setSelectedConsultation(null);
           }
 
-          getAppointments(); // Atualiza a lista de telefones
+          getAppointments();
+          setResetSelection(true);
         } else {
           setMessageModal("Status do agendamento inválido para cancelamento.");
           setErrorModalVisible(true);
         }
       } catch (error) {
-        console.error("Erro ao deletar consulta:", error);
+        setMessageModal("Erro ao cancelar consulta.");
+        setErrorModalVisible(true);
       }
     } else {
-      console.log("Nenhuma consulta selecionada para deletar");
+      setMessageModal("Nenhuma consulta selecionada para cancelar.");
+      setErrorModalVisible(true);
     }
   };
+
+  useEffect(() => {
+    if (resetSelection) {
+      setSelectedConsultation(null);
+      setConsultation(null);
+      setResetSelection(false); // Reseta o controlador após o reset
+    }
+  }, [resetSelection]);
 
   const items = [
     {
@@ -277,17 +309,20 @@ const ScheduledAppointmentPage: React.FC = () => {
           <WaitingListPage
             onSelect={handleSelectConsultation}
             consultations={consultations}
+            resetSelection={resetSelection}
           />
         </ScrollView>
-        <Button onPress={handleAcceptShift} style={styles.button}>
-          ACEITAR CONSULTA
-        </Button>
-        <Button onPress={handleFinishShift} style={styles.button}>
-          FINALIZAR CONSULTA
-        </Button>
-        <Button onPress={handleDeletetShift} style={styles.button}>
-          CANCELAR AGENDAMENTO
-        </Button>
+        <View style={styles.buttonContainer}>
+          <Button onPress={handleAcceptShift} style={styles.button}>
+            ACEITAR
+          </Button>
+          <Button onPress={handleDeletetShift} style={styles.button}>
+            CANCELAR
+          </Button>
+          <Button onPress={handleFinishShift} style={styles.button}>
+            FINALIZAR
+          </Button>
+        </View>
       </View>
       <SelectionModal
         visible={isModalVisible}
@@ -296,7 +331,7 @@ const ScheduledAppointmentPage: React.FC = () => {
       />
       <SimpleModal
         visible={isErrorModalVisible}
-        onClose={() => setErrorModalVisible(false)}
+        onClose={handleCloseErrorModal}
         message={messageModal}
       />
     </SafeAreaView>
@@ -320,9 +355,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  buttonContainer: {
+    flexDirection: "row", // Alinha os botões em linha
+    justifyContent: "space-around", // Espaça os botões uniformemente
+    marginTop: 10, // Adiciona margem acima se necessário
+  },
   button: {
-    marginTop: 5,
-    width: 250,
+    marginHorizontal: 5, // Adiciona margem horizontal entre os botões
+    flex: 1, // Faz com que os botões ocupem espaço igual
   },
 });
 

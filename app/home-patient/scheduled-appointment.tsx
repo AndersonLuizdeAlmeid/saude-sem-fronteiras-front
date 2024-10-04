@@ -18,6 +18,7 @@ import SimpleModal from "../../components/Modal";
 
 const ScheduledAppointmentPage: React.FC = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
+  const [resetSelection, setResetSelection] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
@@ -36,7 +37,7 @@ const ScheduledAppointmentPage: React.FC = () => {
   };
 
   const handleAuxiliaryModalPress = () => {
-    router.replace("/home-doctor/appointments");
+    setModalVisible(true);
   };
 
   const handleSelectConsultation = (consultation: any) => {
@@ -137,6 +138,7 @@ const ScheduledAppointmentPage: React.FC = () => {
           }
 
           getAppointments();
+          setResetSelection(true);
         } else {
           setMessageModal("Status do agendamento inválido");
           setErrorModalVisible(true);
@@ -153,28 +155,50 @@ const ScheduledAppointmentPage: React.FC = () => {
 
   useEffect(() => {
     getAppointments();
+    setResetSelection(true);
   }, []);
+
+  useEffect(() => {
+    if (resetSelection) {
+      setSelectedConsultation(null);
+      setConsultation(null);
+      setResetSelection(false); // Reseta o controlador após o reset
+    }
+  }, [resetSelection]);
 
   const handleStartShift = async () => {
     if (selectedConsultation) {
       if (selectedConsultation && selectedConsultation.id) {
         if (selectedConsultation.status === 2) {
-          const phoneNumber = await apiGet(
-            `/Schedule/doctor/phone/${selectedConsultation.id}`
+          const validateDate = await apiGet<number>(
+            `/Appointment/scheduled/validation/${selectedConsultation.id}`
           );
-          if (phoneNumber !== null) {
-            if (typeof phoneNumber.data === "string") {
-              // Verifique e formate o número de telefone, se necessário
-              const formattedPhoneNumber = formatPhoneNumber(phoneNumber.data);
-              openWhatsApp(
-                formattedPhoneNumber,
-                "Olá, sou o paciente e estou pronto para a consulta"
-              );
-              router.replace("/home-patient");
+          if (validateDate.data > 0) {
+            const phoneNumber = await apiGet(
+              `/Schedule/doctor/phone/${selectedConsultation.id}`
+            );
+            if (phoneNumber !== null) {
+              if (typeof phoneNumber.data === "string") {
+                // Verifique e formate o número de telefone, se necessário
+                const formattedPhoneNumber = formatPhoneNumber(
+                  phoneNumber.data
+                );
+                openWhatsApp(
+                  formattedPhoneNumber,
+                  "Olá, sou o paciente e estou pronto para a consulta"
+                );
+                router.replace("/home-patient");
+              } else {
+                setMessageModal("Problema com o número de telefone");
+                setErrorModalVisible(true);
+              }
             } else {
-              setMessageModal("Problema com o número de telefone");
+              setMessageModal("Telefone do médico é invalido.");
               setErrorModalVisible(true);
             }
+          } else {
+            setMessageModal("Consulta não pode ser iniciada ainda.");
+            setErrorModalVisible(true);
           }
         } else {
           setMessageModal("Status do agendamento inválido");
@@ -223,6 +247,7 @@ const ScheduledAppointmentPage: React.FC = () => {
           <WaitingListPage
             onSelect={handleSelectConsultation}
             consultations={consultations}
+            resetSelection={resetSelection}
           />
         </ScrollView>
         <Button onPress={handleDeletetShift} style={styles.button}>

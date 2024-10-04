@@ -6,3 +6,4 @@ export const STORAGE_USER = "user";
 export const STORAGE_ADDRESS = "address";
 export const STORAGE_DOCTOR = "doctor";
 export const STORAGE_PATIENT = "patient";
+export const STORAGE_APPOINTMENT = "appointment";
