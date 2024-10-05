@@ -17,6 +17,7 @@ import { Doctor } from "../../domain/Doctor/doctor";
 
 const SpecialitiesRegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
+  const [resetSelection, setResetSelection] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
@@ -26,7 +27,7 @@ const SpecialitiesRegistryPage: React.FC = () => {
   const [userId, setUserId] = useState<number>(0);
   const [doctorId, setDoctorId] = useState<number>(0);
   const [consultations, setConsultations] = useState<
-    { id: number; data: string }[]
+    { id: number; data: string; status: number }[]
   >([]);
 
   const handleBackPress = () => {
@@ -98,6 +99,7 @@ const SpecialitiesRegistryPage: React.FC = () => {
           const formattedConsultations = response.data.map((item: any) => ({
             id: item.id,
             data: item.description,
+            status: item.status,
           }));
           setConsultations(formattedConsultations);
         } else {
@@ -176,7 +178,7 @@ const SpecialitiesRegistryPage: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
-        title="Minha Página"
+        title="Especialidades do Médico"
         onBackPress={handleBackPress}
         auxiliaryModalPress={handleAuxiliaryModalPress}
       />
@@ -209,6 +211,7 @@ const SpecialitiesRegistryPage: React.FC = () => {
             <WaitingListPage
               onSelect={handleSelectConsultation}
               consultations={consultations} // Passa os dados para o WaitingListPage
+              resetSelection={resetSelection}
             />
             <Button onPress={handleDeletetShift} style={styles.button}>
               EXCLUIR

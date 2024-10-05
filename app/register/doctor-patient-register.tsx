@@ -49,7 +49,7 @@ const AppointmentsDoctorPage: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <HeaderPage
-        title="Minha Página"
+        title="Cadastro"
         onBackPress={handleBackPress}
         auxiliaryModalPress={handleAuxiliaryModalPress} // Abre o modal ao clicar no botão auxiliar
       />
