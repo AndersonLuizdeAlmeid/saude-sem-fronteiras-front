@@ -28,6 +28,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(true);
   const [logoSize] = useState(new Animated.Value(280));
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
+  const [messageModal, setMessageModal] = useState<string>("");
   const [isModalVisible, setModalVisible] = useState(false);
 
   async function handleLogin() {
@@ -77,9 +78,11 @@ export default function LoginPage() {
         );
         router.replace("/home-patient");
       } else {
+        setMessageModal("Usuário não cadastrado ou credenciais incorretas.");
         setErrorModalVisible(true);
       }
     } catch (err: any) {
+      setMessageModal("Problema na integração, favor contatar o TI.");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -205,7 +208,7 @@ export default function LoginPage() {
         <SimpleModal
           visible={isErrorModalVisible}
           onClose={() => setErrorModalVisible(false)}
-          message="Por favor, preencha todos os campos."
+          message={messageModal}
         />
       </Animated.View>
     </Page>

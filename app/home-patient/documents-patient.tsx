@@ -217,7 +217,7 @@ const DocumentsPatientPage: React.FC = () => {
         viewPrescription();
         break;
       default:
-        setMessageModal("Selecione algum documento.");
+        setMessageModal("Nenhum documento selecionado.");
         setErrorModalVisible(true);
         break;
     }
@@ -324,7 +324,7 @@ const DocumentsPatientPage: React.FC = () => {
         downloadPrescription();
         break;
       default:
-        setMessageModal("Selecione algum documento.");
+        setMessageModal("Nenhum documento selecionado.");
         setErrorModalVisible(true);
         break;
     }
@@ -437,6 +437,9 @@ const DocumentsPatientPage: React.FC = () => {
         setMessageModal("Erro ao deletar o documento.");
         setErrorModalVisible(true);
       }
+    } else {
+      setMessageModal("Nenhum documento selecionado.");
+      setErrorModalVisible(true);
     }
   };
 

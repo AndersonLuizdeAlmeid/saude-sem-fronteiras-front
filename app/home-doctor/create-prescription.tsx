@@ -20,7 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_APPOINTMENT } from "../../constants/storage";
 import { Appointment } from "../../domain/Appointment/appointment";
 import Input from "../../components/Input";
-import { Screening } from "../../domain/Screening/screeningShow";
+import { ScreeningShow } from "../../domain/Screening/screeningShow";
 
 const CreatePrescriptionPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -148,7 +148,7 @@ const CreatePrescriptionPage: React.FC = () => {
   async function handleAuxiliar() {}
 
   async function handleSchedule() {
-    const responseCertificate = await apiGet<Screening>(
+    const responseCertificate = await apiGet<ScreeningShow>(
       `/Prescription/document/${documentIdAux}`
     );
     if (responseCertificate.data !== null) {

@@ -48,7 +48,7 @@ export default function HomePatientPage() {
       text: "Faturas",
       icon: "dollar-sign",
       onPress: () => {
-        router.push("/home-patient/payment-patient");
+        router.push("/home-patient/invoice-patient");
       },
     },
   ];

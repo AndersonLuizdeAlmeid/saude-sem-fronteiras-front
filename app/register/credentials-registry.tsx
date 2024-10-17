@@ -51,6 +51,8 @@ const CredentialsRegistryPage: React.FC = () => {
     try {
       if (password === passwordConfirmation) {
         setLoading(true);
+        console.log(password);
+        console.log(passwordConfirmation);
         await apiPost("/Credentials", { email, password });
         console.log(password);
         console.log(passwordConfirmation);
@@ -67,6 +69,7 @@ const CredentialsRegistryPage: React.FC = () => {
         setErrorModalVisible(true);
       }
     } catch (err: any) {
+      console.log("kkkkkkkkkkkkkk");
       setErrorModalVisible(true);
     } finally {
       setLoading(false);

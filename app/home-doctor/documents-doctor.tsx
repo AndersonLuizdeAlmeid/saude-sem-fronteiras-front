@@ -411,8 +411,25 @@ const DocumentsDoctorPage: React.FC = () => {
   const handleDeletetShift = async () => {
     if (selectedDocument && selectedDocument.id) {
       try {
-        await apiDelete(`/Certificate/${selectedDocument.id}`);
+        switch (type) {
+          case 1:
+            await apiDelete(`/Certificate/${selectedDocument.id}`);
+            break;
+          case 2:
+            await apiDelete(`/Exam/${selectedDocument.id}`);
+            break;
+          case 3:
+            await apiDelete(`/Medicine/${selectedDocument.id}`);
+            await apiDelete(`/Prescription/${selectedDocument.id}`);
+            break;
+          default:
+            setMessageModal("Selecione alguma fatura válida para pagamento.");
+            setErrorModalVisible(true);
+            break;
+        }
+        console.log("sd");
         await apiDelete(`/Document/${selectedDocument.id}`);
+        console.log("'-'");
 
         selectedDocument.status = 3;
         const updatedDocuments = documents.filter(

@@ -91,7 +91,6 @@ const CreateExamPage: React.FC = () => {
           localExam,
           documentId,
         });
-        console.log("KKKKKKKKKKKKKK");
 
         const responseCertificate = await apiGet<Exam>(
           `/Exam/document/${documentId}`

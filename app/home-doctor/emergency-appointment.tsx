@@ -324,10 +324,7 @@ const EmergencyAppointmentPage: React.FC = () => {
   const handleDeletetShift = async () => {
     if (selectedConsultation && selectedConsultation.id) {
       try {
-        if (
-          selectedConsultation.status !== 3 &&
-          selectedConsultation.status !== 4
-        ) {
+        if (selectedConsultation.status === 2) {
           const id = selectedConsultation.id;
           const price = 0;
           const status = 3;

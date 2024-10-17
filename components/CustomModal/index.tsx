@@ -11,7 +11,6 @@ import { router } from "expo-router";
 import { colors } from "../../constants/colors";
 import CardIcon from "../CardIcon";
 import Button from "../Button";
-import { downloadAndOpenFile } from "../../utils/dowloadFile";
 import { apiGet } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_USER } from "../../constants/storage";
@@ -56,10 +55,6 @@ const items = [
     icon: "globe",
     onPress: () => {
       router.push("/../../perfil/tutorial");
-      // downloadAndOpenFile(
-      //   "https://drive.google.com/uc?export=download&id=1ewF86gZGLLSYNOUKJNoveB74pzjuBnoZ",
-      //   "Tutoriais.pdf"
-      // );
     },
   },
   {
@@ -67,10 +62,6 @@ const items = [
     icon: "toolbox",
     onPress: () => {
       router.push("/../../perfil/about");
-      // downloadAndOpenFile(
-      //   "https://drive.google.com/uc?export=download&id=1SU1nP9IaPy-sdzmUEvzGsGOONdku1b33",
-      //   "Sobre.pdf"
-      // );
     },
   },
 ];

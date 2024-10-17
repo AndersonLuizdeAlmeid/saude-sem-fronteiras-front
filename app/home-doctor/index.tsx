@@ -49,7 +49,7 @@ const HomePage: React.FC = () => {
       text: "Faturas",
       icon: "dollar-sign",
       onPress: () => {
-        router.push("");
+        router.push("/home-doctor/invoice-doctor");
       },
     },
   ];
