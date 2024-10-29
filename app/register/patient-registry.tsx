@@ -19,6 +19,12 @@ import { STORAGE_USER } from "../../constants/storage";
 import { User } from "../../domain/User/user";
 import { apiPost } from "../../utils/api";
 import SimpleModal from "../../components/Modal";
+import {
+  ERROR_PATIENT_REGISTRY,
+  ERROR_PHONE,
+  ERROR_USER,
+  FAIL_USER,
+} from "../../utils/messages";
 
 const PatientRegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -26,6 +32,7 @@ const PatientRegistryPage: React.FC = () => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
+  const [message, setMessage] = useState("");
   const [bloodType, setBloodType] = useState("");
   const [allergies, setAllergies] = useState("");
   const [medicalCondition, setMedicalCondition] = useState("");
@@ -54,6 +61,7 @@ const PatientRegistryPage: React.FC = () => {
       });
       router.replace("/home-patient");
     } catch (err: any) {
+      setMessage(ERROR_PATIENT_REGISTRY);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -82,10 +90,12 @@ const PatientRegistryPage: React.FC = () => {
           setUserId(user.id);
           setName(user.name);
         } else {
-          console.log("Nenhum valor encontrado no AsyncStorage");
+          setMessage(ERROR_USER);
+          setErrorModalVisible(true);
         }
       } catch (error) {
-        console.error("Erro ao recuperar ou parsear do AsyncStorage:", error);
+        setMessage(FAIL_USER);
+        setErrorModalVisible(true);
       }
     };
 
@@ -126,6 +136,7 @@ const PatientRegistryPage: React.FC = () => {
       const formattedPhone = formatPhone(value);
       setEmergencyNumber(formattedPhone);
     } else {
+      setMessage(ERROR_PHONE);
       setErrorModalVisible(true);
       setEmergencyNumber("");
     }
@@ -250,7 +261,7 @@ const PatientRegistryPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Por favor, preencha todos os campos."
+        message={message}
       />
       <SelectionModal
         visible={isModalVisible}

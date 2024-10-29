@@ -20,15 +20,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_APPOINTMENT } from "../../constants/storage";
 import { Appointment } from "../../domain/Appointment/appointment";
 import Input from "../../components/Input";
-import { Certificate } from "../../domain/Certificate/certificate";
 import { Exam } from "../../domain/Exam/exam";
+import {
+  CREATE_EXAM,
+  ERROR_CREATE_DOCUMENT,
+  ERROR_GET_DOCUMENT,
+} from "../../utils/messages";
 
 const CreateExamPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [date, setDate] = useState<string>("");
-  const [patientId, setPatientId] = useState<number>(0);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -97,15 +100,15 @@ const CreateExamPage: React.FC = () => {
         );
         if (responseCertificate.data !== null) {
           setStart(1);
-          setMessageModal("Exame Criado com sucesso.");
+          setMessageModal(CREATE_EXAM);
           setErrorModalVisible(true);
         } else {
-          setMessageModal("Erro ao gerar documento.");
+          setMessageModal(ERROR_CREATE_DOCUMENT);
           setErrorModalVisible(true);
           setLoading(false);
         }
       } else {
-        setMessageModal("Erro ao pegar documento.");
+        setMessageModal(ERROR_GET_DOCUMENT);
         setErrorModalVisible(true);
         setLoading(false);
       }

@@ -21,6 +21,12 @@ import { STORAGE_APPOINTMENT } from "../../constants/storage";
 import { Appointment } from "../../domain/Appointment/appointment";
 import Input from "../../components/Input";
 import { ScreeningShow } from "../../domain/Screening/screeningShow";
+import {
+  CREATE_MEDICINE,
+  CREATE_PRESCRIPTION,
+  ERROR_CREATE_DOCUMENT,
+  ERROR_MEDICINE,
+} from "../../utils/messages";
 
 const CreatePrescriptionPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -133,11 +139,11 @@ const CreatePrescriptionPage: React.FC = () => {
           setDosage("");
           setObservation("");
           setDescription("");
-          setMessageModal("Medicamento adicionado à receita.");
+          setMessageModal(CREATE_MEDICINE);
           setErrorModalVisible(true);
         }
       } catch {
-        setMessageModal("Problema ao adicionar medicamento.");
+        setMessageModal(ERROR_MEDICINE);
         setErrorModalVisible(true);
         setLoading(false);
       }
@@ -153,10 +159,10 @@ const CreatePrescriptionPage: React.FC = () => {
     );
     if (responseCertificate.data !== null) {
       setStart(1);
-      setMessageModal("Receita médica criada com sucesso.");
+      setMessageModal(CREATE_PRESCRIPTION);
       setErrorModalVisible(true);
     } else {
-      setMessageModal("Erro ao gerar documento.");
+      setMessageModal(ERROR_CREATE_DOCUMENT);
       setErrorModalVisible(true);
       setLoading(false);
     }

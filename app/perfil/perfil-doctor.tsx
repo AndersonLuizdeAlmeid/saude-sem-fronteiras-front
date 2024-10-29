@@ -17,7 +17,7 @@ import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_USER } from "../../constants/storage";
+import { STORAGE_DOCTOR, STORAGE_USER } from "../../constants/storage";
 import { User } from "../../domain/User/user";
 import { apiGet, apiPut } from "../../utils/api";
 import SimpleModal from "../../components/Modal";
@@ -27,6 +27,18 @@ import { Address } from "../../domain/Address/address";
 import ComboBox from "../../components/ComboBox";
 import { State } from "../../domain/State/state";
 import { Country } from "../../domain/Country/country";
+import {
+  EROR_GET_DATA,
+  ERROR_CITIES,
+  ERROR_COUNTRIES,
+  ERROR_PHONE,
+  ERROR_STATES,
+  FAIL_CITIES,
+  FAIL_COUNTRIES,
+  FAIL_STATES,
+  FAIL_STORAGE_DOCTOR,
+} from "../../utils/messages";
+import { Doctor } from "../../domain/Doctor/doctor";
 
 const PerfilPatientPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -34,8 +46,11 @@ const PerfilPatientPage: React.FC = () => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
+  const [message, setMessage] = useState("");
   const [registryNumber, setRegistryNumber] = useState("");
-  const [avaibalityHours, setAvaibalityHours] = useState("");
+  const [initialHour, setInitialHour] = useState("");
+  const [finalHour, setFinalHour] = useState("");
+  const [dias, setDias] = useState("");
   const [consultationPrice, setConsultationPrice] = useState("");
   const [userId, setUserId] = useState<number>(0);
   const [nameInput, setNameInput] = useState<string>("");
@@ -46,7 +61,7 @@ const PerfilPatientPage: React.FC = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [language, setLanguage] = useState("");
-  const [credentialsId, setCredentialsId] = useState<number>(0);
+  const [phone, setPhone] = useState("");
   const [country, setCountry] = useState<{
     id: number;
     description: string;
@@ -83,11 +98,21 @@ const PerfilPatientPage: React.FC = () => {
   const [countryString, setCountryString] = useState<string>("");
   const [stateString, setStateString] = useState<string>("");
   const [cityString, setCityString] = useState<string>("");
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [loading, setLoading] = useState(false);
+  const daysOfWeek = [
+    { id: 0, label: "D", value: "Sunday" },
+    { id: 1, label: "S", value: "Monday" },
+    { id: 2, label: "T", value: "Tuesday" },
+    { id: 3, label: "Q", value: "Wednesday" },
+    { id: 4, label: "Q", value: "Thursday" },
+    { id: 5, label: "S", value: "Friday" },
+    { id: 6, label: "S", value: "Saturday" },
+  ];
 
   const handleBackPress = () => {
-    router.back();
+    router.replace("/home-doctor");
   };
 
   async function handlePatientRegistry() {
@@ -104,15 +129,28 @@ const PerfilPatientPage: React.FC = () => {
         gender,
         language,
         statusUser,
-        credentialsId,
+        phone,
       });
 
-      await apiPut("/Doctor", {
-        registryNumber,
-        avaibalityHours,
-        consultationPrice,
-        userId,
-      });
+      const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
+      if (value) {
+        const doctor: Doctor = JSON.parse(value);
+        const days = selectedDays.sort().join("");
+        const id = doctor.id;
+
+        await apiPut("/Doctor", {
+          id,
+          registryNumber,
+          initialHour,
+          finalHour,
+          consultationPrice,
+          days,
+          userId,
+        });
+      } else {
+        setMessage(FAIL_STORAGE_DOCTOR);
+        setErrorModalVisible(true);
+      }
 
       const cityId = city?.id;
       await apiPut("/Address", {
@@ -126,6 +164,7 @@ const PerfilPatientPage: React.FC = () => {
 
       router.replace("/home-doctor");
     } catch (err: any) {
+      setMessage(EROR_GET_DATA);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -177,13 +216,16 @@ const PerfilPatientPage: React.FC = () => {
           setDateOfBirth(user.dateBirth);
           setGender(user.gender);
           setLanguage(user.language);
+          setPhone(user.phone);
 
-          const patientResponse = await apiGet<Patient>(
-            `/Doctor/id/${user.id}`
+          const patientResponse = await apiGet<Doctor>(`/Doctor/id/${user.id}`);
+          setRegistryNumber(patientResponse.data.registryNumber);
+          setInitialHour(patientResponse.data.initialHour);
+          setFinalHour(patientResponse.data.finalHour);
+          setConsultationPrice(
+            patientResponse.data.consultationPrice.toString()
           );
-          setRegistryNumber(patientResponse.data.bloodType);
-          setAvaibalityHours(patientResponse.data.allergies);
-          setConsultationPrice(patientResponse.data.medicalCondition);
+          setDias(patientResponse.data.days);
 
           const address = await apiGet<Address>(`/Address/id/${user.id}`);
           setDistrict(address.data.district);
@@ -258,9 +300,11 @@ const PerfilPatientPage: React.FC = () => {
         setCountries(formattedCountries);
       } else {
         setCountries([]);
+        setMessage(FAIL_COUNTRIES);
         setErrorModalVisible(true);
       }
     } catch (err: any) {
+      setMessage(ERROR_COUNTRIES);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -282,9 +326,11 @@ const PerfilPatientPage: React.FC = () => {
         setAllStates(formattedStates);
       } else {
         setAllStates([]);
+        setMessage(FAIL_STATES);
         setErrorModalVisible(true);
       }
     } catch (err: any) {
+      setMessage(ERROR_STATES);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -306,12 +352,81 @@ const PerfilPatientPage: React.FC = () => {
         setAllCities(formattedCities);
       } else {
         setAllCities([]);
+        setMessage(FAIL_CITIES);
         setErrorModalVisible(true);
       }
     } catch (err: any) {
+      setMessage(ERROR_CITIES);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTimeInput = (
+    value: string,
+    setTime: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    const cleanedValue = value.replace(/[^0-9]/g, "");
+
+    if (cleanedValue.length === 1) {
+      setTime(`0${cleanedValue}:00`);
+    } else if (cleanedValue.length === 2) {
+      const hours = parseInt(cleanedValue, 10);
+      if (hours >= 0 && hours <= 24) {
+        setTime(`${cleanedValue.padStart(2, "0")}:00`);
+      } else {
+        setTime("");
+      }
+    } else {
+      setTime("");
+    }
+  };
+
+  const handleDaySelection = (id: number) => {
+    setSelectedDays((prevSelectedDays) =>
+      prevSelectedDays.includes(id)
+        ? prevSelectedDays.filter((day) => day !== id)
+        : [...prevSelectedDays, id]
+    );
+  };
+
+  const validatePhone = (value: string) => {
+    const cleanPhone = value.replace(/\D/g, "");
+    if (cleanPhone.length < 12 || cleanPhone.length > 13) return false;
+    if (!cleanPhone.startsWith("55")) return false;
+
+    return true;
+  };
+
+  const formatPhone = (value: string) => {
+    const cleanPhone = value.replace(/\D/g, "");
+    if (cleanPhone.length < 12 || cleanPhone.length > 13) return value;
+
+    if (cleanPhone.length === 13) {
+      return cleanPhone.replace(
+        /(\d{2})(\d{2})(\d{5})(\d{4})/,
+        "($1) $2 $3-$4"
+      );
+    } else {
+      return cleanPhone.replace(
+        /(\d{2})(\d{2})(\d{4})(\d{4})/,
+        "($1) $2 $3-$4"
+      );
+    }
+  };
+
+  const handlePhoneInput = (
+    value: string,
+    setTime: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    if (validatePhone(value)) {
+      const formattedPhone = formatPhone(value);
+      setPhone(formattedPhone);
+    } else {
+      setMessage(ERROR_PHONE);
+      setErrorModalVisible(true);
+      setPhone("");
     }
   };
 
@@ -418,15 +533,26 @@ const PerfilPatientPage: React.FC = () => {
                 style={styles.input}
               />
               <Input
+                label="Telefone"
+                autoCorrect={false}
+                placeholder="5554997020294"
+                value={phone}
+                onBlur={() => handlePhoneInput(phone, setPhone)}
+                onChangeText={(value) => {
+                  setPhone(value);
+                }}
+                style={styles.input}
+              />
+              <Input
                 label=""
                 autoCorrect={false}
                 placeholder=""
                 style={styles.customLine}
               />
               <Input
-                label="Alergias"
+                label="Número de Registro"
                 autoCorrect={false}
-                placeholder="Abelha, Gato"
+                placeholder="RS-12345"
                 value={registryNumber}
                 onChangeText={(value) => {
                   setRegistryNumber(value);
@@ -434,19 +560,47 @@ const PerfilPatientPage: React.FC = () => {
                 style={styles.input}
               />
               <Input
-                label="Tipo Sanguíneo"
+                label="Horário inicial de atendimento"
                 autoCorrect={false}
-                placeholder="O+"
-                value={avaibalityHours}
-                onChangeText={(value) => {
-                  setAvaibalityHours(value);
-                }}
+                placeholder="18:00"
+                value={initialHour}
+                onChangeText={setInitialHour} // Permite que o usuário insira o valor sem formatação
+                onBlur={() => handleTimeInput(initialHour, setInitialHour)} // Formatação quando o campo perde o foco
                 style={styles.input}
               />
               <Input
-                label="Condição Médica"
+                label="Horário final de atendimento"
                 autoCorrect={false}
-                placeholder="Saudável"
+                placeholder="06:00"
+                value={finalHour}
+                onChangeText={setFinalHour} // Permite que o usuário insira o valor sem formatação
+                onBlur={() => handleTimeInput(finalHour, setFinalHour)} // Formatação quando o campo perde o foco
+                style={styles.input}
+              />
+              <View style={styles.daysOfWeekContainer}>
+                <Text style={styles.daysOfWeekLabel}>
+                  Dia da semana com atendimento
+                </Text>
+                <View style={styles.daysOfWeek}>
+                  {daysOfWeek.map((day) => (
+                    <TouchableOpacity
+                      key={day.id}
+                      style={[
+                        styles.dayButton,
+                        selectedDays.includes(day.id) &&
+                          styles.selectedDayButton,
+                      ]}
+                      onPress={() => handleDaySelection(day.id)}
+                    >
+                      <Text style={styles.dayLabel}>{day.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              <Input
+                label="Preço de consulta"
+                autoCorrect={false}
+                placeholder="R$100,00"
                 value={consultationPrice}
                 onChangeText={(value) => {
                   setConsultationPrice(value);
@@ -540,7 +694,7 @@ const PerfilPatientPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Por favor, preencha todos os campos."
+        message={message}
       />
       <SelectionModal
         visible={isModalVisible}
@@ -557,8 +711,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.black,
   },
   scrollViewContent: {
-    paddingVertical: 20, // Adicione espaçamento vertical
-    alignItems: "center", // Centraliza o conteúdo horizontalmente
+    paddingVertical: 20,
+    alignItems: "center",
   },
   formContainer: {
     justifyContent: "center",
@@ -600,6 +754,36 @@ const styles = StyleSheet.create({
     height: 2,
     backgroundColor: "black",
     marginVertical: 35,
+  },
+  daysOfWeekContainer: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  daysOfWeekLabel: {
+    color: colors.white,
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  daysOfWeek: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: 320,
+  },
+  dayButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.white,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedDayButton: {
+    backgroundColor: colors.gray_2,
+  },
+  dayLabel: {
+    color: colors.white,
+    fontSize: 16,
   },
 });
 

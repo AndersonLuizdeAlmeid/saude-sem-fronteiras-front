@@ -16,6 +16,13 @@ import { Patient } from "../../domain/Patient/patient";
 import WaitingListPageInvoice from "../../components/WaitingListPageInvoice";
 import ModalHTML from "../../components/ModalHTML";
 import ModalInput from "../../components/ModalInput";
+import {
+  ERROR_GET_APPOINTMENTS,
+  ERROR_GET_PATIENT,
+  ERROR_INVOICE_SELECTED,
+  ERROR_INVOICE_VALID,
+  ERROR_UPDATE_INVOICES,
+} from "../../utils/messages";
 
 const InvoicePatientPage: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -27,6 +34,7 @@ const InvoicePatientPage: React.FC = () => {
   const [status, setStatus] = useState<number>(0);
 
   const [isHtmlModalVisible, setHtmlModalVisible] = useState(false);
+  const [updateInvoice, setUpdateInvoice] = useState<number>(0);
   const [htmlContent, setHtmlContent] = useState<string>("");
 
   const [isModalInputVisible, setIsModalInputVisible] = useState(false);
@@ -112,14 +120,15 @@ const InvoicePatientPage: React.FC = () => {
 
           setInvoices(formattedDocuments);
         } else {
-          console.log("Nenhum valor encontrado no AsyncStorage");
+          setMessageModal(ERROR_GET_APPOINTMENTS);
+          setErrorModalVisible(true);
         }
       } else {
-        setMessageModal("Formato de resposta inesperado");
+        setMessageModal(ERROR_GET_PATIENT);
         setErrorModalVisible(true);
       }
     } catch (error) {
-      setMessageModal("Erro ao buscar consultas:");
+      setMessageModal(ERROR_GET_APPOINTMENTS);
       setErrorModalVisible(true);
     }
   };
@@ -136,7 +145,7 @@ const InvoicePatientPage: React.FC = () => {
         viewInvoice();
         break;
       default:
-        setMessageModal("Selecione alguma fatura válida para pagamento.");
+        setMessageModal(ERROR_INVOICE_VALID);
         setErrorModalVisible(true);
         break;
     }
@@ -166,7 +175,7 @@ const InvoicePatientPage: React.FC = () => {
         downloadInvoice();
         break;
       default:
-        setMessageModal("Selecione alguma fatura.");
+        setMessageModal(ERROR_INVOICE_SELECTED);
         setErrorModalVisible(true);
         break;
     }
@@ -187,16 +196,38 @@ const InvoicePatientPage: React.FC = () => {
     }
   };
 
+  const updateInvoices = async () => {
+    const value = await AsyncStorage.getItem(STORAGE_PATIENT);
+    if (value) {
+      const patient: Patient = JSON.parse(value);
+      const response = await apiGet<string>(
+        `/Invoice/verify/invoices/patient/${patient.id}`
+      );
+      if (response.data === null) {
+        setMessageModal(ERROR_UPDATE_INVOICES);
+        setErrorModalVisible(true);
+      }
+    } else {
+      setMessageModal(ERROR_GET_PATIENT);
+      setErrorModalVisible(true);
+    }
+  };
+
+  useEffect(() => {
+    updateInvoices();
+    setUpdateInvoice(1);
+  }, []);
+
   useEffect(() => {
     getInvoices();
     if (selectedInvoice === null) {
       handleSelectDocument;
     }
-  }, []);
+  }, [updateInvoice]);
 
   const filterDocuments = (documents: any[]) => {
     if (!filter || filter < 1 || filter > 3) {
-      setMessageModal("Selecione um tipo de fatura válida.");
+      setMessageModal(ERROR_INVOICE_VALID);
       setErrorModalVisible(true);
       return documents; // Retorna todas as consultas se o filtro for inválido
     }

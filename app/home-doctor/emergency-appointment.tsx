@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Animated } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderPage from "../../components/HeaderPage";
 import { router } from "expo-router";
@@ -15,9 +15,24 @@ import Button from "../../components/Button";
 import { Doctor } from "../../domain/Doctor/doctor";
 import SimpleModal from "../../components/Modal";
 import { openWhatsApp } from "../../utils/whatsapp";
-import { ScreeningShow } from "../../domain/Screening/screeningShow";
 import { Screening } from "../../domain/Screening/screening";
 import { Appointment } from "../../domain/Appointment/appointment";
+import {
+  ANY_APPOINTMENT_DELETE,
+  ANY_PHONE_FOUND,
+  ANY_SCHEDULE_SELECTED,
+  APPOINTMENT_NOT_START_YET,
+  ERROR_APPOINTMENT_DELETE,
+  ERROR_GET_APPOINTMENTS,
+  ERROR_GET_VALUE_DOCTOR,
+  ERROR_WHATSAPP,
+  FORMAT_INCORRECT,
+  PHONE_INCORRECT,
+  STATUS_INCORRECT,
+  STATUS_INCORRECT_ACCEPT,
+  STATUS_INCORRECT_CANCEL,
+  STATUS_INCORRECT_FINISH,
+} from "../../utils/messages";
 
 const EmergencyAppointmentPage: React.FC = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
@@ -110,16 +125,15 @@ const EmergencyAppointmentPage: React.FC = () => {
           }));
           setConsultations(formattedConsultations);
         } else {
-          setMessageModal("Problema ao pegar valores do médico.");
+          setMessageModal(ERROR_GET_VALUE_DOCTOR);
           setErrorModalVisible(true);
-          console.log("Nenhum valor encontrado no AsyncStorage");
         }
       } else {
-        setMessageModal("Formato de resposta inesperado.");
+        setMessageModal(FORMAT_INCORRECT);
         setErrorModalVisible(true);
       }
     } catch (error) {
-      setMessageModal("Erro ao buscar consultas.");
+      setMessageModal(ERROR_GET_APPOINTMENTS);
       setErrorModalVisible(true);
     }
   };
@@ -158,19 +172,20 @@ const EmergencyAppointmentPage: React.FC = () => {
             setValidation(0);
             router.replace("/home-doctor");
           } else {
-            setMessageModal("O número de telefone não é uma string válida.");
+            setMessageModal(PHONE_INCORRECT);
             setErrorModalVisible(true);
           }
         } else {
-          setMessageModal("Nenhum número de telefone encontrado.");
+          setMessageModal(ANY_PHONE_FOUND);
           setErrorModalVisible(true);
         }
       } else {
-        setMessageModal("Consulta não pode ser iniciada.");
+        setMessageModal(APPOINTMENT_NOT_START_YET);
         setErrorModalVisible(true);
       }
     } catch (error) {
-      console.error("Erro ao tentar iniciar a consulta via WhatsApp:", error);
+      setMessageModal(ERROR_WHATSAPP);
+      setErrorModalVisible(true);
     }
   };
 
@@ -198,14 +213,12 @@ const EmergencyAppointmentPage: React.FC = () => {
             setStart(1);
           }
         } else {
-          setMessageModal(
-            "Status do agendamento inválido para iniciar consulta."
-          );
+          setMessageModal(STATUS_INCORRECT);
           setErrorModalVisible(true);
         }
       }
     } else {
-      setMessageModal("Nenhuma consulta selecionada.");
+      setMessageModal(ANY_APPOINTMENT_DELETE);
       setErrorModalVisible(true);
     }
   };
@@ -278,11 +291,11 @@ const EmergencyAppointmentPage: React.FC = () => {
           }
         }
       } else {
-        setMessageModal("Status do agendamento inválido para aceitação.");
+        setMessageModal(STATUS_INCORRECT_ACCEPT);
         setErrorModalVisible(true);
       }
     } else {
-      setMessageModal("Nenhum agendamento selecionado");
+      setMessageModal(ANY_SCHEDULE_SELECTED);
       setErrorModalVisible(true);
     }
   };
@@ -312,11 +325,11 @@ const EmergencyAppointmentPage: React.FC = () => {
           setResetSelection(true);
         }
       } else {
-        setMessageModal("Status do agendamento inválido para finalização.");
+        setMessageModal(STATUS_INCORRECT_FINISH);
         setErrorModalVisible(true);
       }
     } else {
-      setMessageModal("Nenhum agendamento selecionado");
+      setMessageModal(ANY_SCHEDULE_SELECTED);
       setErrorModalVisible(true);
     }
   };
@@ -379,14 +392,15 @@ const EmergencyAppointmentPage: React.FC = () => {
           getAppointments();
           setResetSelection(true);
         } else {
-          setMessageModal("Status do agendamento inválido para cancelamento.");
+          setMessageModal(STATUS_INCORRECT_CANCEL);
           setErrorModalVisible(true);
         }
       } catch (error) {
-        console.error("Erro ao deletar consulta:", error);
+        setMessageModal(ERROR_APPOINTMENT_DELETE);
+        setErrorModalVisible(true);
       }
     } else {
-      setMessageModal("Nenhuma consulta selecionada para deletar.");
+      setMessageModal(ANY_APPOINTMENT_DELETE);
       setErrorModalVisible(true);
     }
   };

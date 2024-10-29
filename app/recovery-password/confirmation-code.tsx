@@ -23,6 +23,12 @@ import {
   STORAGE_EMAIL,
 } from "../../constants/storage";
 import { Email } from "../../domain/Email/email";
+import {
+  ERROR_PASSWORD_CONFIRMATION,
+  FAIL_EMAIL,
+  FAIL_EMAIL_SEARCH,
+  FAIL_PASSWORD,
+} from "../../utils/messages";
 
 const ConfirmationCodePage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -30,7 +36,7 @@ const ConfirmationCodePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
-  const [email, setEmail] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
   const [confirmationCode, setConfirmationCode] = useState<string>("");
 
   const handleBackPress = () => {
@@ -52,17 +58,19 @@ const ConfirmationCodePage: React.FC = () => {
   const handleValidationCode = async () => {
     try {
       const value = await AsyncStorage.getItem(STORAGE_CONFIRMATION_CODE);
-      console.log(value);
       if (value) {
         if (confirmationCode === value) {
           router.replace("/recovery-password/new-password");
         } else {
+          setMessage(ERROR_PASSWORD_CONFIRMATION);
           setErrorModalVisible(true);
         }
       } else {
-        console.log("Nenhum valor encontrado no AsyncStorage");
+        setMessage(FAIL_PASSWORD);
+        setErrorModalVisible(true);
       }
     } catch (err: any) {
+      setMessage(FAIL_PASSWORD);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -81,9 +89,11 @@ const ConfirmationCodePage: React.FC = () => {
           JSON.stringify(response.data)
         );
       } else {
-        console.log("Nenhum valor encontrado no AsyncStorage");
+        setMessage(FAIL_EMAIL_SEARCH);
+        setErrorModalVisible(true);
       }
     } catch (err: any) {
+      setMessage(FAIL_EMAIL);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -160,7 +170,7 @@ const ConfirmationCodePage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Código inválido, favor redigitar."
+        message={message}
       />
     </SafeAreaView>
   );

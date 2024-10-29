@@ -22,6 +22,14 @@ import { apiGet, apiPost } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_PATIENT } from "../../constants/storage";
 import { Patient } from "../../domain/Patient/patient";
+import {
+  APPOINTMENT_SCHEDULED,
+  ERROR_DATE_VALID,
+  ERROR_GET_DATE_HOUR,
+  ERROR_GET_DOCTORS,
+  ERROR_GET_SPECIALITIES,
+  ERROR_SELECT_DATE_HOUR,
+} from "../../utils/messages";
 
 const SchedulePatientPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -84,7 +92,7 @@ const SchedulePatientPage: React.FC = () => {
 
   async function handleSchedule() {
     if (!date || !freeTime) {
-      setMessageModal("Selecione uma data e horário");
+      setMessageModal(ERROR_SELECT_DATE_HOUR);
       setErrorModalVisible(true);
       return;
     }
@@ -119,7 +127,7 @@ const SchedulePatientPage: React.FC = () => {
           appointmentId,
         });
         setConfirmForm(1);
-        setMessageModal("Consulta agendada!");
+        setMessageModal(APPOINTMENT_SCHEDULED);
         setErrorModalVisible(true);
       }
     }
@@ -137,7 +145,7 @@ const SchedulePatientPage: React.FC = () => {
     if (selectedDate > currentDate) {
       setDate(formattedDate);
     } else {
-      setMessageModal("Data da consulta tem que ser maior que hoje.");
+      setMessageModal(ERROR_DATE_VALID);
       setErrorModalVisible(true);
       setDate("");
     }
@@ -172,7 +180,7 @@ const SchedulePatientPage: React.FC = () => {
           setSpecialities(formattedSpecialities);
         } else {
           setSpecialities([]);
-          setMessageModal("Erro ao selecionar as especialidades");
+          setMessageModal(ERROR_GET_SPECIALITIES);
           setErrorModalVisible(true);
         }
       } catch (err: any) {
@@ -202,7 +210,7 @@ const SchedulePatientPage: React.FC = () => {
           setDoctors(formattedDoctors);
         } else {
           setDoctors([]);
-          setMessageModal("Erro ao selecionar os médicos");
+          setMessageModal(ERROR_GET_DOCTORS);
           setErrorModalVisible(true);
         }
       } catch (err: any) {
@@ -246,7 +254,7 @@ const SchedulePatientPage: React.FC = () => {
           setFreeTimes(formattedFreeTime);
         } else {
           setFreeTimes([]);
-          setMessageModal("Não foi possível selecionar os horários livres");
+          setMessageModal(ERROR_GET_DATE_HOUR);
           setErrorModalVisible(true);
           setDate("");
         }

@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  Linking,
-  KeyboardAvoidingView,
-  Animated,
-  Platform,
-} from "react-native";
+import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderPage from "../../components/HeaderPage";
 import { router } from "expo-router";
@@ -17,12 +10,26 @@ import WaitingListPage from "../../components/WaitingListPage";
 import SelectionModal from "../../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_DOCTOR } from "../../constants/storage";
-import { apiDelete, apiGet, apiPut } from "../../utils/api";
+import { apiGet, apiPut } from "../../utils/api";
 import Button from "../../components/Button";
 import { Doctor } from "../../domain/Doctor/doctor";
-import { User } from "../../domain/User/user";
 import SimpleModal from "../../components/Modal";
 import { openWhatsApp } from "../../utils/whatsapp";
+import {
+  ANY_APPOINTMENT_CANCEL,
+  ANY_APPOINTMENT_SELECTED,
+  ANY_SCHEDULE_SELECTED,
+  APPOINTMENT_NOT_START_YET,
+  ERROR_CANCEL_APPOINTMENT,
+  ERROR_GET_APPOINTMENTS,
+  FAIL_STORAGE_DOCTOR,
+  FORMAT_INCORRECT,
+  PHONE_INCORRECT,
+  STATUS_INCORRECT,
+  STATUS_INCORRECT_ACCEPT,
+  STATUS_INCORRECT_CANCEL,
+  STATUS_INCORRECT_FINISH,
+} from "../../utils/messages";
 
 const ScheduledAppointmentPage: React.FC = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
@@ -31,8 +38,6 @@ const ScheduledAppointmentPage: React.FC = () => {
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [messageModal, setMessageModal] = useState<string>("");
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
-  const [opacity] = useState(new Animated.Value(0));
   const [consultations, setConsultations] = useState<
     { id: number; data: string; status: number }[]
   >([]);
@@ -104,16 +109,15 @@ const ScheduledAppointmentPage: React.FC = () => {
 
           setConsultations(formattedConsultations);
         } else {
-          setMessageModal("Problema ao buscar os dados do médico.");
+          setMessageModal(FAIL_STORAGE_DOCTOR);
           setErrorModalVisible(true);
-          console.log("Nenhum valor encontrado no AsyncStorage");
         }
       } else {
-        setMessageModal("Formato de resposta inesperado.");
+        setMessageModal(FORMAT_INCORRECT);
         setErrorModalVisible(true);
       }
     } catch (error) {
-      setMessageModal("Erro ao buscar consultas.");
+      setMessageModal(ERROR_GET_APPOINTMENTS);
       setErrorModalVisible(true);
     }
   };
@@ -146,23 +150,21 @@ const ScheduledAppointmentPage: React.FC = () => {
                 );
                 router.replace("/home-doctor");
               } else {
-                setMessageModal("O número de telefone não é uma texto válida.");
+                setMessageModal(PHONE_INCORRECT);
                 setErrorModalVisible(true);
               }
             }
           } else {
-            setMessageModal("Consulta não pode ser iniciada ainda.");
+            setMessageModal(APPOINTMENT_NOT_START_YET);
             setErrorModalVisible(true);
           }
         } else {
-          setMessageModal(
-            "Status do agendamento inválido para iniciar consulta."
-          );
+          setMessageModal(STATUS_INCORRECT);
           setErrorModalVisible(true);
         }
       }
     } else {
-      setMessageModal("Nenhuma consulta selecionada.");
+      setMessageModal(ANY_APPOINTMENT_SELECTED);
       setErrorModalVisible(true);
     }
   };
@@ -191,11 +193,11 @@ const ScheduledAppointmentPage: React.FC = () => {
         getAppointments();
         setResetSelection(true);
       } else {
-        setMessageModal("Status do agendamento inválido para aceitação.");
+        setMessageModal(STATUS_INCORRECT_ACCEPT);
         setErrorModalVisible(true);
       }
     } else {
-      setMessageModal("Nenhum agendamento selecionado");
+      setMessageModal(ANY_SCHEDULE_SELECTED);
       setErrorModalVisible(true);
     }
   };
@@ -217,11 +219,11 @@ const ScheduledAppointmentPage: React.FC = () => {
         getAppointments();
         setResetSelection(true);
       } else {
-        setMessageModal("Status do agendamento inválido para finalização.");
+        setMessageModal(STATUS_INCORRECT_FINISH);
         setErrorModalVisible(true);
       }
     } else {
-      setMessageModal("Nenhum agendamento selecionado");
+      setMessageModal(ANY_SCHEDULE_SELECTED);
       setErrorModalVisible(true);
     }
   };
@@ -262,15 +264,15 @@ const ScheduledAppointmentPage: React.FC = () => {
           getAppointments();
           setResetSelection(true);
         } else {
-          setMessageModal("Status do agendamento inválido para cancelamento.");
+          setMessageModal(STATUS_INCORRECT_CANCEL);
           setErrorModalVisible(true);
         }
       } catch (error) {
-        setMessageModal("Erro ao cancelar consulta.");
+        setMessageModal(ERROR_CANCEL_APPOINTMENT);
         setErrorModalVisible(true);
       }
     } else {
-      setMessageModal("Nenhuma consulta selecionada para cancelar.");
+      setMessageModal(ANY_APPOINTMENT_CANCEL);
       setErrorModalVisible(true);
     }
   };

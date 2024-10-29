@@ -17,7 +17,7 @@ import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_USER } from "../../constants/storage";
+import { STORAGE_PATIENT, STORAGE_USER } from "../../constants/storage";
 import { User } from "../../domain/User/user";
 import { apiGet, apiPut } from "../../utils/api";
 import SimpleModal from "../../components/Modal";
@@ -27,6 +27,16 @@ import { Address } from "../../domain/Address/address";
 import ComboBox from "../../components/ComboBox";
 import { State } from "../../domain/State/state";
 import { Country } from "../../domain/Country/country";
+import {
+  EROR_GET_DATA,
+  ERROR_CITIES,
+  ERROR_COUNTRIES,
+  ERROR_PHONE,
+  ERROR_STATES,
+  FAIL_CITIES,
+  FAIL_COUNTRIES,
+  FAIL_STATES,
+} from "../../utils/messages";
 
 const PerfilPatientPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -34,6 +44,7 @@ const PerfilPatientPage: React.FC = () => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
+  const [message, setMessage] = useState("");
   const [bloodType, setBloodType] = useState("");
   const [allergies, setAllergies] = useState("");
   const [medicalCondition, setMedicalCondition] = useState("");
@@ -49,6 +60,7 @@ const PerfilPatientPage: React.FC = () => {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
   const [language, setLanguage] = useState("");
+  const [phone, setPhone] = useState("");
   const [credentialsId, setCredentialsId] = useState<number>(0);
   const [country, setCountry] = useState<{
     id: number;
@@ -90,21 +102,13 @@ const PerfilPatientPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleBackPress = () => {
-    router.back();
+    router.replace("/home-patient");
   };
 
   async function handlePatientRegistry() {
     try {
       setLoading(true);
-      await apiPut("/Patient", {
-        bloodType,
-        allergies,
-        medicalCondition,
-        previousSurgeries,
-        medicines,
-        emergencyNumber,
-        userId,
-      });
+
       const id = userId;
       var statusUser = true;
       await apiPut("/Users", {
@@ -116,8 +120,27 @@ const PerfilPatientPage: React.FC = () => {
         gender,
         language,
         statusUser,
-        credentialsId,
+        phone,
       });
+      const value = await AsyncStorage.getItem(STORAGE_PATIENT);
+      if (value) {
+        const patient: Patient = JSON.parse(value);
+        const id = patient.id;
+        await apiPut("/Patient", {
+          id,
+          bloodType,
+          allergies,
+          medicalCondition,
+          previousSurgeries,
+          medicines,
+          emergencyNumber,
+          userId,
+        });
+      } else {
+        setMessage(STORAGE_PATIENT);
+        setErrorModalVisible(true);
+      }
+
       const cityId = city?.id;
       await apiPut("/Address", {
         district,
@@ -130,7 +153,7 @@ const PerfilPatientPage: React.FC = () => {
 
       router.replace("/home-patient");
     } catch (err: any) {
-      console.log("FERROU");
+      setMessage(EROR_GET_DATA);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -191,6 +214,7 @@ const PerfilPatientPage: React.FC = () => {
           setDateOfBirth(formatDate(user.dateBirth));
           setGender(user.gender);
           setLanguage(user.language);
+          setPhone(user.phone);
 
           const patientResponse = await apiGet<Patient>(
             `/Patient/id/${user.id}`
@@ -275,11 +299,11 @@ const PerfilPatientPage: React.FC = () => {
         setCountries(formattedCountries);
       } else {
         setCountries([]);
-        console.log("KKKKKKKKKKKKKKKKKKKKK");
+        setMessage(FAIL_COUNTRIES);
         setErrorModalVisible(true);
       }
     } catch (err: any) {
-      console.log("K");
+      setMessage(ERROR_COUNTRIES);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -301,11 +325,11 @@ const PerfilPatientPage: React.FC = () => {
         setAllStates(formattedStates);
       } else {
         setAllStates([]);
-        console.log("KKKKKK");
+        setMessage(FAIL_STATES);
         setErrorModalVisible(true);
       }
     } catch (err: any) {
-      console.log("KKKK");
+      setMessage(ERROR_STATES);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -327,14 +351,53 @@ const PerfilPatientPage: React.FC = () => {
         setAllCities(formattedCities);
       } else {
         setAllCities([]);
-        console.log("KKK");
+        setMessage(FAIL_CITIES);
         setErrorModalVisible(true);
       }
     } catch (err: any) {
-      console.log("KK");
+      setMessage(ERROR_CITIES);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const validatePhone = (value: string) => {
+    const cleanPhone = value.replace(/\D/g, "");
+    if (cleanPhone.length < 12 || cleanPhone.length > 13) return false;
+    if (!cleanPhone.startsWith("55")) return false;
+
+    return true;
+  };
+
+  const formatPhone = (value: string) => {
+    const cleanPhone = value.replace(/\D/g, "");
+    if (cleanPhone.length < 12 || cleanPhone.length > 13) return value;
+
+    if (cleanPhone.length === 13) {
+      return cleanPhone.replace(
+        /(\d{2})(\d{2})(\d{5})(\d{4})/,
+        "($1) $2 $3-$4"
+      );
+    } else {
+      return cleanPhone.replace(
+        /(\d{2})(\d{2})(\d{4})(\d{4})/,
+        "($1) $2 $3-$4"
+      );
+    }
+  };
+
+  const handlePhoneInput = (
+    value: string,
+    setTime: React.Dispatch<React.SetStateAction<string>>
+  ) => {
+    if (validatePhone(value)) {
+      const formattedPhone = formatPhone(value);
+      setPhone(formattedPhone);
+    } else {
+      setMessage(ERROR_PHONE);
+      setErrorModalVisible(true);
+      setPhone("");
     }
   };
 
@@ -437,6 +500,17 @@ const PerfilPatientPage: React.FC = () => {
                 value={language}
                 onChangeText={(value) => {
                   setLanguage(value);
+                }}
+                style={styles.input}
+              />
+              <Input
+                label="Telefone"
+                autoCorrect={false}
+                placeholder="5554997020294"
+                value={phone}
+                onBlur={() => handlePhoneInput(phone, setPhone)}
+                onChangeText={(value) => {
+                  setPhone(value);
                 }}
                 style={styles.input}
               />
@@ -598,7 +672,7 @@ const PerfilPatientPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Por favor, preencha todos os campos."
+        message={message}
       />
       <SelectionModal
         visible={isModalVisible}
@@ -615,8 +689,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.black,
   },
   scrollViewContent: {
-    paddingVertical: 20, // Adicione espaçamento vertical
-    alignItems: "center", // Centraliza o conteúdo horizontalmente
+    paddingVertical: 20,
+    alignItems: "center",
   },
   formContainer: {
     justifyContent: "center",

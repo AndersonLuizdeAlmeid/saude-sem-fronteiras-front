@@ -15,6 +15,16 @@ import { Patient } from "../../domain/Patient/patient";
 import Button from "../../components/Button";
 import { openWhatsApp } from "../../utils/whatsapp";
 import SimpleModal from "../../components/Modal";
+import {
+  ANY_APPOINTMENT_DELETE,
+  APPOINTMENT_NOT_START_YET,
+  ERROR_APPOINTMENT_DELETE,
+  ERROR_GET_APPOINTMENTS,
+  ERROR_GET_PATIENT,
+  ERROR_PHONE_DOCTOR,
+  ERROR_PHONE_NUMBER,
+  STATUS_SCHEDULED_INVALID,
+} from "../../utils/messages";
 
 const ScheduledAppointmentPage: React.FC = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
@@ -92,14 +102,15 @@ const ScheduledAppointmentPage: React.FC = () => {
 
           setConsultations(formattedConsultations);
         } else {
-          console.log("Nenhum valor encontrado no AsyncStorage");
+          setMessageModal(ERROR_GET_PATIENT);
+          setErrorModalVisible(true);
         }
       } else {
-        setMessageModal("Formato de resposta inesperado");
+        setMessageModal(ERROR_GET_PATIENT);
         setErrorModalVisible(true);
       }
     } catch (error) {
-      setMessageModal("Erro ao buscar consultas:");
+      setMessageModal(ERROR_GET_APPOINTMENTS);
       setErrorModalVisible(true);
     }
   };
@@ -140,15 +151,15 @@ const ScheduledAppointmentPage: React.FC = () => {
           getAppointments();
           setResetSelection(true);
         } else {
-          setMessageModal("Status do agendamento inválido");
+          setMessageModal(STATUS_SCHEDULED_INVALID);
           setErrorModalVisible(true);
         }
       } catch (error) {
-        setMessageModal("Erro ao deletar consulta");
+        setMessageModal(ERROR_APPOINTMENT_DELETE);
         setErrorModalVisible(true);
       }
     } else {
-      setMessageModal("Nenhuma consulta selecionada para deletar");
+      setMessageModal(ANY_APPOINTMENT_DELETE);
       setErrorModalVisible(true);
     }
   };
@@ -189,24 +200,24 @@ const ScheduledAppointmentPage: React.FC = () => {
                 );
                 router.replace("/home-patient");
               } else {
-                setMessageModal("Problema com o número de telefone");
+                setMessageModal(ERROR_PHONE_NUMBER);
                 setErrorModalVisible(true);
               }
             } else {
-              setMessageModal("Telefone do médico é invalido.");
+              setMessageModal(ERROR_PHONE_DOCTOR);
               setErrorModalVisible(true);
             }
           } else {
-            setMessageModal("Consulta não pode ser iniciada ainda.");
+            setMessageModal(APPOINTMENT_NOT_START_YET);
             setErrorModalVisible(true);
           }
         } else {
-          setMessageModal("Status do agendamento inválido");
+          setMessageModal(STATUS_SCHEDULED_INVALID);
           setErrorModalVisible(true);
         }
       }
     } else {
-      setMessageModal("Nenhuma consulta selecionada");
+      setMessageModal(ANY_APPOINTMENT_DELETE);
       setErrorModalVisible(true);
     }
   };

@@ -18,6 +18,8 @@ import { Credentials } from "../domain/Credentials/credentials";
 import SimpleModal from "../components/Modal";
 import { Address } from "../domain/Address/address";
 import { Doctor } from "../domain/Doctor/doctor";
+import { FAIL_API, UNREGISTERED_USER } from "../utils/messages";
+import InputPassword from "../components/Input/inputPassword";
 
 export default function LoginPage() {
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
@@ -34,17 +36,14 @@ export default function LoginPage() {
   async function handleLogin() {
     try {
       setLoading(true);
-      const response = await apiPost<string>("/Authentication", {
-        email,
-        password,
-      });
 
-      await AsyncStorage.setItem(STORAGE_TOKEN, response.data);
       const CredentialsResponse = await apiGet<Credentials>(
         `/Credentials/${email}/${password}`
       );
-
-      AsyncStorage.setItem(STORAGE_CREDENTIALS, JSON.stringify(response.data));
+      AsyncStorage.setItem(
+        STORAGE_CREDENTIALS,
+        JSON.stringify(CredentialsResponse.data)
+      );
       const userResponse = await apiGet<Credentials>(
         `/Users/credentialsId/${CredentialsResponse.data.id}`
       );
@@ -78,11 +77,11 @@ export default function LoginPage() {
         );
         router.replace("/home-patient");
       } else {
-        setMessageModal("Usuário não cadastrado ou credenciais incorretas.");
+        setMessageModal(UNREGISTERED_USER);
         setErrorModalVisible(true);
       }
     } catch (err: any) {
-      setMessageModal("Problema na integração, favor contatar o TI.");
+      setMessageModal(FAIL_API);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -143,6 +142,10 @@ export default function LoginPage() {
     };
   }, []);
 
+  useEffect(() => {
+    AsyncStorage.clear();
+  }, []);
+
   return (
     <Page>
       <View style={styles.containerLogo}>
@@ -170,17 +173,17 @@ export default function LoginPage() {
           keyboardType="email-address"
           autoCapitalize="none"
         />
-        <Input
+        <InputPassword
           label="Senha"
-          autoCorrect={false}
           placeholder="*****"
+          autoCorrect={false}
           value={password}
           onChangeText={(value) => {
             setPassword(value);
           }}
           textContentType="password"
           secureTextEntry
-          style={{ marginBottom: 60 }}
+          isPassword={true}
         />
         <Button
           onPress={handleLogin}

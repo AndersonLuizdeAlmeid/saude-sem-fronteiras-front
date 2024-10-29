@@ -24,6 +24,13 @@ import { STORAGE_APPOINTMENT, STORAGE_DOCTOR } from "../../constants/storage";
 import { Doctor } from "../../domain/Doctor/doctor";
 import { Appointment } from "../../domain/Appointment/appointment";
 import Input from "../../components/Input";
+import {
+  APPOINTMENT_DONT_HAVE_DOCTOR,
+  CREATE_INVOICE,
+  FAIL_STORAGE_DOCTOR,
+  SELECT_APPOINTMENT_BEFORE,
+  SELECT_PATIENT_BEFORE,
+} from "../../utils/messages";
 
 const CreateInvoicePage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -99,22 +106,18 @@ const CreateInvoicePage: React.FC = () => {
             appointmentId: appointmentObject.id,
           });
           setStart(1);
-          setMessageModal("Fatura criada com sucesso.");
+          setMessageModal(CREATE_INVOICE);
           setErrorModalVisible(true);
         } else {
-          setMessageModal("Consulta não tem médico cadastrado.");
+          setMessageModal(APPOINTMENT_DONT_HAVE_DOCTOR);
           setErrorModalVisible(true);
         }
       } else {
-        setMessageModal(
-          "Selecione a consulta antes de tentar criar o documento."
-        );
+        setMessageModal(SELECT_APPOINTMENT_BEFORE);
         setErrorModalVisible(true);
       }
     } else {
-      setMessageModal(
-        "Selecione o paciente antes de tentar criar o documento."
-      );
+      setMessageModal(SELECT_PATIENT_BEFORE);
       setErrorModalVisible(true);
     }
   }
@@ -156,6 +159,8 @@ const CreateInvoicePage: React.FC = () => {
             setPatients(formattedPatients);
           }
         } else {
+          setMessageModal(FAIL_STORAGE_DOCTOR);
+          setErrorModalVisible(true);
           console.log("Nenhum valor encontrado no AsyncStorage");
         }
       } catch {}
@@ -199,6 +204,8 @@ const CreateInvoicePage: React.FC = () => {
             setAppointments(formattedAppointments);
           }
         } else {
+          setMessageModal(FAIL_STORAGE_DOCTOR);
+          setErrorModalVisible(true);
           console.log("Nenhum valor encontrado no AsyncStorage");
         }
       } catch {}

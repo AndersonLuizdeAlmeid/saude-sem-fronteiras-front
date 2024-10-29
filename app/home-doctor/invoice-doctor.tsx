@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderPage from "../../components/HeaderPage";
 import { router } from "expo-router";
@@ -7,19 +7,27 @@ import { colors } from "../../constants/colors";
 import { ScrollView } from "react-native";
 import SelectionModal from "../../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_DOCTOR, STORAGE_PATIENT } from "../../constants/storage";
+import { STORAGE_DOCTOR } from "../../constants/storage";
 import { apiDelete, apiGet, apiPut } from "../../utils/api";
 import SimpleModal from "../../components/Modal";
 import Button from "../../components/Button";
-import { CertificateShow } from "../../domain/Certificate/certificateShow";
-import { downloadAndOpenDocument } from "../../utils/dowloadFile";
-import { Patient } from "../../domain/Patient/patient";
 import WaitingListPageInvoice from "../../components/WaitingListPageInvoice";
-import { InvoiceShow } from "../../domain/Invoice/invoicesShow";
 import CardIcon from "../../components/CardIcon";
 import { Doctor } from "../../domain/Doctor/doctor";
-import WebView from "react-native-webview";
 import ModalHTML from "../../components/ModalHTML";
+import {
+  ERROR_DELETE_INVOICE,
+  ERROR_GET_APPOINTMENTS,
+  ERROR_GET_PATIENTS,
+  ERROR_UPDATE_INVOICE,
+  ERROR_UPDATE_INVOICES,
+  FAIL_STORAGE_DOCTOR,
+  FORMAT_INCORRECT,
+  INVOICE_ALREADY_FINISHED,
+  SELECT_DOCUMENT,
+  SELECT_TYPE_INVOICE_VALID,
+} from "../../utils/messages";
+import ComboBox from "../../components/ComboBox";
 
 const InvoiceDoctorPage: React.FC = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -37,11 +45,15 @@ const InvoiceDoctorPage: React.FC = () => {
   const [invoices, setInvoices] = useState<
     { id: number; data: string; status: number }[]
   >([]);
-  const [invoice, setInvoice] = useState<{
+  const [filter, setFilter] = useState<number>(2);
+  const [patients, setPatients] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+  const [patient, setPatient] = useState<{
     id: number;
     description: string;
   } | null>(null);
-  const [filter, setFilter] = useState<number>(2);
+  const [patientId, setPatientId] = useState<number>(0);
 
   const handleBackPress = () => {
     router.back();
@@ -79,14 +91,40 @@ const InvoiceDoctorPage: React.FC = () => {
     }
   }, [resetSelection]);
 
-  //mudar para documents
+  const getPatients = async () => {
+    try {
+      const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
+      if (value) {
+        const doctor: Doctor = JSON.parse(value);
+        const responsePatients = await apiGet(
+          `/Appointment/patients/doctor/${doctor.id}`
+        );
+        if (responsePatients && Array.isArray(responsePatients.data)) {
+          const formattedPatients = responsePatients.data.map(
+            (patient: { id: number; name: string }) => ({
+              id: patient.id,
+              label: patient.name,
+              comparativeId: patient.id,
+            })
+          );
+          setPatients(formattedPatients);
+        }
+      } else {
+        setMessageModal(FAIL_STORAGE_DOCTOR);
+        setErrorModalVisible(true);
+      }
+    } catch (error) {
+      setMessageModal(ERROR_GET_APPOINTMENTS);
+      setErrorModalVisible(true);
+    }
+  };
+
   const getInvoices = async () => {
     try {
       const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
       if (value) {
         const doctor: Doctor = JSON.parse(value);
         const response = await apiGet(`/Invoice/doctor/${doctor.id}`);
-        console.log(response.data);
         if (response && Array.isArray(response.data)) {
           const formatDate = (dateString: string) => {
             const date = new Date(dateString);
@@ -100,22 +138,23 @@ const InvoiceDoctorPage: React.FC = () => {
             return date.toLocaleDateString("pt-BR", options);
           };
 
-          const formattedDocuments = response.data.map((item: any) => ({
+          const formattedInvoices = response.data.map((item: any) => ({
             id: item.id,
             data: `${formatDate(item.date)} - ${item.name}`,
             status: item.status,
           }));
 
-          setInvoices(formattedDocuments);
+          setInvoices(formattedInvoices);
         } else {
-          console.log("Nenhum valor encontrado no AsyncStorage");
+          setMessageModal(FAIL_STORAGE_DOCTOR);
+          setErrorModalVisible(true);
         }
       } else {
-        setMessageModal("Formato de resposta inesperado");
+        setMessageModal(FORMAT_INCORRECT);
         setErrorModalVisible(true);
       }
     } catch (error) {
-      setMessageModal("Erro ao buscar consultas:");
+      setMessageModal(ERROR_GET_APPOINTMENTS);
       setErrorModalVisible(true);
     }
   };
@@ -126,11 +165,11 @@ const InvoiceDoctorPage: React.FC = () => {
         const status = 2;
         await apiPut("/Invoice/", { id: invoiceId, status });
       } else {
-        setMessageModal("Fatura já está finalizada.");
+        setMessageModal(INVOICE_ALREADY_FINISHED);
         setErrorModalVisible(true);
       }
     } catch {
-      setMessageModal("Problema ao alterar Fatura.");
+      setMessageModal(ERROR_UPDATE_INVOICE);
       setErrorModalVisible(true);
     }
   };
@@ -139,7 +178,7 @@ const InvoiceDoctorPage: React.FC = () => {
     if (selectedInvoice.id !== null) {
       viewInvoice();
     } else {
-      setMessageModal("Selecione algum documento.");
+      setMessageModal(SELECT_DOCUMENT);
       setErrorModalVisible(true);
     }
   };
@@ -176,28 +215,97 @@ const InvoiceDoctorPage: React.FC = () => {
 
           getInvoices();
         } else {
-          setMessageModal("Status da fatura está finalizado.");
+          setMessageModal(INVOICE_ALREADY_FINISHED);
           setErrorModalVisible(true);
         }
       } catch (error) {
-        setMessageModal("Erro ao deletar a fatura.");
+        setMessageModal(ERROR_DELETE_INVOICE);
         setErrorModalVisible(true);
       }
     }
   };
 
   useEffect(() => {
+    const loadPatients = async () => {
+      try {
+        if (patientId !== null && patientId !== 0) {
+          const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
+          if (value) {
+            const doctor: Doctor = JSON.parse(value);
+            const response = await apiGet(`/Invoice/doctor/${doctor.id}`);
+            if (response && Array.isArray(response.data)) {
+              const formatDate = (dateString: string) => {
+                const date = new Date(dateString);
+                const options: Intl.DateTimeFormatOptions = {
+                  year: "numeric",
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                };
+                return date.toLocaleDateString("pt-BR", options);
+              };
+
+              const formattedInvoices = response.data.map((item: any) => ({
+                id: item.id,
+                data: `${formatDate(item.date)} - ${item.name}`,
+                status: item.status,
+              }));
+
+              setInvoices(formattedInvoices);
+            }
+          } else {
+            setMessageModal(FAIL_STORAGE_DOCTOR);
+            setErrorModalVisible(true);
+          }
+        } else {
+          getPatients();
+          if (selectedInvoice === null) {
+            handleSelectDocument;
+          }
+        }
+      } catch {
+        setMessageModal(ERROR_GET_PATIENTS);
+        setErrorModalVisible(true);
+      }
+    };
+    loadPatients();
+  }, [patientId]);
+
+  const updateInvoices = async () => {
+    const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
+    if (value) {
+      const patient: Doctor = JSON.parse(value);
+      const response = await apiGet<string>(
+        `/Invoice/verify/invoices/patient/${patient.id}`
+      );
+      if (response.data === null) {
+        setMessageModal(ERROR_UPDATE_INVOICES);
+        setErrorModalVisible(true);
+      }
+    } else {
+      setMessageModal(FAIL_STORAGE_DOCTOR);
+      setErrorModalVisible(true);
+    }
+  };
+
+  useEffect(() => {
+    updateInvoices();
+  }, []);
+
+  useEffect(() => {
+    getPatients();
     getInvoices();
     if (selectedInvoice === null) {
       handleSelectDocument;
     }
-  }, []);
+  }, [patientId]);
 
   const filterDocuments = (documents: any[]) => {
     if (!filter || filter < 1 || filter > 3) {
-      setMessageModal("Selecione um tipo de fatura válida.");
+      setMessageModal(SELECT_TYPE_INVOICE_VALID);
       setErrorModalVisible(true);
-      return documents; // Retorna todas as consultas se o filtro for inválido
+      return documents;
     }
     const filtered = documents.filter((document) => {
       return document.status === filter;
@@ -261,6 +369,19 @@ const InvoiceDoctorPage: React.FC = () => {
               <CardIcon {...i} />
             </React.Fragment>
           ))}
+          <ComboBox
+            label="Paciente"
+            data={patients}
+            onSelect={(selectedPatient) => {
+              setPatient({
+                id: selectedPatient.id,
+                description: selectedPatient.label,
+              });
+              setPatientId(selectedPatient.id);
+            }}
+            placeholder="Escolha o paciente"
+            value={patient ? patient.description : ""}
+          />
           <WaitingListPageInvoice
             onSelect={handleSelectDocument}
             consultations={filterDocuments(invoices)}
@@ -290,9 +411,9 @@ const InvoiceDoctorPage: React.FC = () => {
         message={messageModal}
       />
       <ModalHTML
-        visible={isHtmlModalVisible} // Controla se o modal está visível
-        htmlContent={htmlContent} // Passa o HTML para ser renderizado
-        onClose={handleCloseModalHTML} // Função para fechar o modal
+        visible={isHtmlModalVisible}
+        htmlContent={htmlContent}
+        onClose={handleCloseModalHTML}
       />
     </SafeAreaView>
   );

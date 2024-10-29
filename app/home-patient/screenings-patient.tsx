@@ -19,6 +19,12 @@ import { apiGet, apiPost } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_PATIENT } from "../../constants/storage";
 import { Patient } from "../../domain/Patient/patient";
+import {
+  EMERGENCY_APPOINTMENT_CREATE,
+  ERROR_GET_LAST_EMERGENCY,
+  ERROR_GET_PATIENT,
+  ERROR_PATH_NOT_POPULATED,
+} from "../../utils/messages";
 
 const ScreeningPatientPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -105,23 +111,22 @@ const ScreeningPatientPage: React.FC = () => {
               emergencyId,
             });
             setConfirmForm(1);
-            setMessage(
-              "Consulta emergencial cadastrada. Um médico entrará em contato com você via whatsapp, aguarde!"
-            );
+            setMessage(EMERGENCY_APPOINTMENT_CREATE);
             setErrorModalVisible(true);
           } else {
-            setMessage("Problema ao selecionar a ultima consulta emergencial");
+            setMessage(ERROR_GET_LAST_EMERGENCY);
             setErrorModalVisible(true);
           }
         } else {
-          setMessage("Problema ao selecionar a ultima consulta");
+          setMessage(ERROR_GET_LAST_EMERGENCY);
           setErrorModalVisible(true);
         }
       } else {
-        console.log("Nenhum valor encontrado no AsyncStorage");
+        setMessage(ERROR_GET_PATIENT);
+        setErrorModalVisible(true);
       }
     } else {
-      setMessage("Necessário popular os campos de sintomas e data do sintoma.");
+      setMessage(ERROR_PATH_NOT_POPULATED);
       setErrorModalVisible(true);
     }
     setLoading(false);

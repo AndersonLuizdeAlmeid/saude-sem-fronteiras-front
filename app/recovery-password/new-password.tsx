@@ -15,7 +15,7 @@ import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import SimpleModal from "../../components/Modal";
-import { apiGet, apiPost, apiPut } from "../../utils/api";
+import { apiGet, apiPut } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   STORAGE_CREDENTIALS,
@@ -23,6 +23,12 @@ import {
   STORAGE_USER,
 } from "../../constants/storage";
 import { Credentials } from "../../domain/Credentials/credentials";
+import {
+  ERROR_GET_USER_REGISTRY,
+  ERROR_PASSWORD_CREATE,
+  PASSWORD_INCORRECT,
+} from "../../utils/messages";
+import InputPassword from "../../components/Input/inputPassword";
 
 const NewPasswordPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -30,6 +36,7 @@ const NewPasswordPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
+  const [message, setMessage] = useState("");
   const [password, setPassword] = useState("");
   const [confirmedPassword, setConfirmedPassword] = useState("");
 
@@ -55,8 +62,6 @@ const NewPasswordPage: React.FC = () => {
         setLoading(true);
 
         const email = await AsyncStorage.getItem(STORAGE_EMAIL);
-        console.log(email);
-        console.log(password);
         await apiPut("/Credentials/Password", {
           email,
           password,
@@ -86,13 +91,15 @@ const NewPasswordPage: React.FC = () => {
         } else if (userOrDoctor.data === 2) {
           router.replace("/home-patient");
         } else {
+          setMessage(ERROR_GET_USER_REGISTRY);
           setErrorModalVisible(true);
         }
       } else {
+        setMessage(PASSWORD_INCORRECT);
         setErrorModalVisible(true);
       }
     } catch (err: any) {
-      console.log(err);
+      setMessage(ERROR_PASSWORD_CREATE);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -135,23 +142,27 @@ const NewPasswordPage: React.FC = () => {
             ]}
           >
             <View style={styles.formContainer}>
-              <Input
+              <InputPassword
                 label="Informe a nova senha"
-                autoCorrect={false}
                 placeholder="*****"
+                autoCorrect={false}
                 value={password}
-                onChangeText={(value) => setPassword(value)}
+                onChangeText={(value) => {
+                  setPassword(value);
+                }}
+                textContentType="password"
                 secureTextEntry
-                style={styles.input}
+                isPassword={true}
               />
-              <Input
+              <InputPassword
                 label="Confirme a nova senha"
-                autoCorrect={false}
                 placeholder="*****"
+                autoCorrect={false}
                 value={confirmedPassword}
                 onChangeText={(value) => setConfirmedPassword(value)}
+                textContentType="password"
                 secureTextEntry
-                style={styles.input}
+                isPassword={true}
               />
               <Button
                 onPress={handleAddressRegistry}
@@ -172,7 +183,7 @@ const NewPasswordPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="As senhas não são iguais."
+        message={message}
       />
     </SafeAreaView>
   );

@@ -21,6 +21,7 @@ import {
   STORAGE_CONFIRMATION_CODE,
   STORAGE_EMAIL,
 } from "../../constants/storage";
+import { FAIL_EMAIL_SEARCH } from "../../utils/messages";
 
 const RecoveryPasswordPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -28,6 +29,7 @@ const RecoveryPasswordPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
+  const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
 
   const handleBackPress = () => {
@@ -57,6 +59,7 @@ const RecoveryPasswordPage: React.FC = () => {
         JSON.stringify(response.data)
       ).then(() => router.push("/recovery-password/confirmation-code"));
     } catch (err: any) {
+      setMessage(FAIL_EMAIL_SEARCH);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -126,7 +129,7 @@ const RecoveryPasswordPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Por favor, preencha todos os campos."
+        message={message}
       />
     </SafeAreaView>
   );

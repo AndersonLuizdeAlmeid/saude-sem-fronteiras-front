@@ -21,6 +21,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_APPOINTMENT, STORAGE_DOCTOR } from "../../constants/storage";
 import { Doctor } from "../../domain/Doctor/doctor";
 import { Appointment } from "../../domain/Appointment/appointment";
+import {
+  FAIL_STORAGE_DOCTOR,
+  SELECT_PATIENT_BEFORE,
+  SELECT_TYPE_DOCUMENT,
+} from "../../utils/messages";
 
 const DocumentChooseCreatePage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -97,14 +102,12 @@ const DocumentChooseCreatePage: React.FC = () => {
           router.replace("/home-doctor/create-prescription");
           break;
         default:
-          setMessageModal("Selecione o tipo de documento.");
+          setMessageModal(SELECT_TYPE_DOCUMENT);
           setErrorModalVisible(true);
           break;
       }
     } else {
-      setMessageModal(
-        "Selecione o paciente antes de tentar criar o documento."
-      );
+      setMessageModal(SELECT_PATIENT_BEFORE);
       setErrorModalVisible(true);
     }
   }
@@ -146,7 +149,8 @@ const DocumentChooseCreatePage: React.FC = () => {
             setPatients(formattedPatients);
           }
         } else {
-          console.log("Nenhum valor encontrado no AsyncStorage");
+          setMessageModal(FAIL_STORAGE_DOCTOR);
+          setErrorModalVisible(true);
         }
       } catch {}
     };
@@ -189,7 +193,8 @@ const DocumentChooseCreatePage: React.FC = () => {
             setAppointments(formattedAppointments);
           }
         } else {
-          console.log("Nenhum valor encontrado no AsyncStorage");
+          setMessageModal(FAIL_STORAGE_DOCTOR);
+          setErrorModalVisible(true);
         }
       } catch {}
     };

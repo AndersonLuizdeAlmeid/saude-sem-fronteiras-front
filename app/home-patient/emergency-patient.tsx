@@ -10,11 +10,15 @@ import WaitingListPage from "../../components/WaitingListPage";
 import SelectionModal from "../../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_PATIENT } from "../../constants/storage";
-import { apiDelete, apiGet, apiPut } from "../../utils/api";
+import { apiGet, apiPut } from "../../utils/api";
 import { Patient } from "../../domain/Patient/patient";
 import Button from "../../components/Button";
-import { openWhatsApp } from "../../utils/whatsapp";
 import SimpleModal from "../../components/Modal";
+import {
+  ANY_APPOINTMENT_DELETE,
+  ERROR_APPOINTMENT_DELETE,
+  STATUS_SCHEDULED_INVALID,
+} from "../../utils/messages";
 
 const EmergencyPatientPage: React.FC = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
@@ -160,17 +164,17 @@ const EmergencyPatientPage: React.FC = () => {
 
           getAppointments();
         } else {
-          setMessageModal("Status do agendamento inválido");
+          setMessageModal(STATUS_SCHEDULED_INVALID);
           setErrorModalVisible(true);
           setLoading(false);
         }
       } catch (error) {
-        setMessageModal("Erro ao deletar consulta");
+        setMessageModal(ERROR_APPOINTMENT_DELETE);
         setErrorModalVisible(true);
         setLoading(false);
       }
     } else {
-      setMessageModal("Nenhuma consulta selecionada para deletar");
+      setMessageModal(ANY_APPOINTMENT_DELETE);
       setErrorModalVisible(true);
       setLoading(false);
     }

@@ -5,20 +5,25 @@ import HeaderPage from "../../components/HeaderPage";
 import { router } from "expo-router";
 import { colors } from "../../constants/colors";
 import { ScrollView } from "react-native";
-import CardIcon from "../../components/CardIcon";
 import SelectionModal from "../../components/CustomModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_DOCTOR, STORAGE_PATIENT } from "../../constants/storage";
+import { STORAGE_PATIENT } from "../../constants/storage";
 import { apiDelete, apiGet } from "../../utils/api";
 import SimpleModal from "../../components/Modal";
 import WaitingListPageDocument from "../../components/WaitingListPageDocument";
-import { Doctor } from "../../domain/Doctor/doctor";
 import Button from "../../components/Button";
 import { CertificateShow } from "../../domain/Certificate/certificateShow";
 import { downloadAndOpenDocument } from "../../utils/dowloadFile";
 import { ExamShow } from "../../domain/Exam/examShow";
 import { PrescriptionShow } from "../../domain/Prescription/prescriptionShow";
 import { Patient } from "../../domain/Patient/patient";
+import {
+  ANY_DOCUMENT_SELECTED,
+  ERROR_DOCUMENT_DELETED,
+  ERROR_DOCUMENTS,
+  ERROR_GET_PATIENT,
+  SELECT_VALID_TYPE_DOCUMENT,
+} from "../../utils/messages";
 
 const DocumentsPatientPage: React.FC = () => {
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
@@ -196,11 +201,11 @@ const DocumentsPatientPage: React.FC = () => {
           console.log("Nenhum valor encontrado no AsyncStorage");
         }
       } else {
-        setMessageModal("Formato de resposta inesperado");
+        setMessageModal(ERROR_GET_PATIENT);
         setErrorModalVisible(true);
       }
     } catch (error) {
-      setMessageModal("Erro ao buscar consultas:");
+      setMessageModal(ERROR_DOCUMENTS);
       setErrorModalVisible(true);
     }
   };
@@ -217,7 +222,7 @@ const DocumentsPatientPage: React.FC = () => {
         viewPrescription();
         break;
       default:
-        setMessageModal("Nenhum documento selecionado.");
+        setMessageModal(ANY_DOCUMENT_SELECTED);
         setErrorModalVisible(true);
         break;
     }
@@ -324,7 +329,7 @@ const DocumentsPatientPage: React.FC = () => {
         downloadPrescription();
         break;
       default:
-        setMessageModal("Nenhum documento selecionado.");
+        setMessageModal(ANY_DOCUMENT_SELECTED);
         setErrorModalVisible(true);
         break;
     }
@@ -434,11 +439,11 @@ const DocumentsPatientPage: React.FC = () => {
 
         getDocuments();
       } catch (error) {
-        setMessageModal("Erro ao deletar o documento.");
+        setMessageModal(ERROR_DOCUMENT_DELETED);
         setErrorModalVisible(true);
       }
     } else {
-      setMessageModal("Nenhum documento selecionado.");
+      setMessageModal(ANY_DOCUMENT_SELECTED);
       setErrorModalVisible(true);
     }
   };
@@ -450,15 +455,11 @@ const DocumentsPatientPage: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    //    setDocumentId(selectedDocument.id);
-  }, [document]);
-
   const filterDocuments = (documents: any[]) => {
     if (!filter || filter < 1 || filter > 3) {
-      setMessageModal("Selecione um tipo de documento válido.");
+      setMessageModal(SELECT_VALID_TYPE_DOCUMENT);
       setErrorModalVisible(true);
-      return documents; // Retorna todas as consultas se o filtro for inválido
+      return documents;
     }
     const filtered = documents.filter((document) => {
       return document.type === filter;

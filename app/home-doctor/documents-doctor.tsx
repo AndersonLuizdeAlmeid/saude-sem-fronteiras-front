@@ -18,6 +18,17 @@ import { CertificateShow } from "../../domain/Certificate/certificateShow";
 import { downloadAndOpenDocument } from "../../utils/dowloadFile";
 import { ExamShow } from "../../domain/Exam/examShow";
 import { PrescriptionShow } from "../../domain/Prescription/prescriptionShow";
+import {
+  ANY_APPOINTMENT_DELETE,
+  ERROR_APPOINTMENT_DELETE,
+  ERROR_GET_APPOINTMENTS,
+  ERROR_GET_PATIENTS,
+  FAIL_STORAGE_DOCTOR,
+  FORMAT_INCORRECT,
+  SELECT_DOCUMENT,
+  SELECT_INVOICE_VALID,
+} from "../../utils/messages";
+import ComboBox from "../../components/ComboBox";
 
 const DocumentsDoctorPage: React.FC = () => {
   const [selectedDocument, setSelectedDocument] = useState<any>(null);
@@ -35,6 +46,15 @@ const DocumentsDoctorPage: React.FC = () => {
     id: number;
     description: string;
   } | null>(null);
+
+  const [patients, setPatients] = useState<
+    { id: number; label: string; comparativeId: number }[]
+  >([]);
+  const [patient, setPatient] = useState<{
+    id: number;
+    description: string;
+  } | null>(null);
+  const [patientId, setPatientId] = useState<number>(0);
 
   const handleBackPress = () => {
     router.back();
@@ -64,7 +84,7 @@ const DocumentsDoctorPage: React.FC = () => {
       setSelectedDocument(null);
       setDocumentId(0);
       setType(0);
-      setResetSelection(false); // Reseta o controlador após o reset
+      setResetSelection(false);
     }
   }, [resetSelection]);
 
@@ -139,7 +159,7 @@ const DocumentsDoctorPage: React.FC = () => {
     date: Date,
     nameDoctor: string,
     registryNumber: string,
-    itemsText: string // Adiciona os medicamentos como um bloco de texto
+    itemsText: string
   ) => {
     return `
     PRESCRIÇÃO MÉDICA
@@ -158,7 +178,6 @@ const DocumentsDoctorPage: React.FC = () => {
     `;
   };
 
-  //mudar para documents
   const getDocuments = async () => {
     try {
       const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
@@ -186,14 +205,15 @@ const DocumentsDoctorPage: React.FC = () => {
 
           setDocuments(formattedDocuments);
         } else {
-          console.log("Nenhum valor encontrado no AsyncStorage");
+          setMessageModal(FAIL_STORAGE_DOCTOR);
+          setErrorModalVisible(true);
         }
       } else {
-        setMessageModal("Formato de resposta inesperado");
+        setMessageModal(FORMAT_INCORRECT);
         setErrorModalVisible(true);
       }
     } catch (error) {
-      setMessageModal("Erro ao buscar consultas:");
+      setMessageModal(ERROR_GET_APPOINTMENTS);
       setErrorModalVisible(true);
     }
   };
@@ -210,7 +230,7 @@ const DocumentsDoctorPage: React.FC = () => {
         viewPrescription();
         break;
       default:
-        setMessageModal("Selecione algum documento.");
+        setMessageModal(SELECT_DOCUMENT);
         setErrorModalVisible(true);
         break;
     }
@@ -260,7 +280,6 @@ const DocumentsDoctorPage: React.FC = () => {
     );
 
     if (response.data !== null && response.data.length > 0) {
-      // Pegando os dados da primeira posição do array
       const {
         namePatient,
         street,
@@ -273,8 +292,6 @@ const DocumentsDoctorPage: React.FC = () => {
         registryNumber,
       } = response.data[0];
 
-      // Iterar sobre os medicamentos (description, quantity, dosage, observation)
-      // A partir de todos os itens no array de 'response.data'
       const itemsText = response.data
         .map(
           (item, index) => `
@@ -286,7 +303,6 @@ const DocumentsDoctorPage: React.FC = () => {
         )
         .join("\n\n");
 
-      // Gerando o texto completo da prescrição
       const certificateText = generatePrescription(
         namePatient,
         street,
@@ -297,7 +313,7 @@ const DocumentsDoctorPage: React.FC = () => {
         date,
         nameDoctor,
         registryNumber,
-        itemsText // Passa os medicamentos processados como texto
+        itemsText
       );
 
       setMessageModal(certificateText);
@@ -317,7 +333,7 @@ const DocumentsDoctorPage: React.FC = () => {
         downloadPrescription();
         break;
       default:
-        setMessageModal("Selecione algum documento.");
+        setMessageModal(SELECT_DOCUMENT);
         setErrorModalVisible(true);
         break;
     }
@@ -364,7 +380,6 @@ const DocumentsDoctorPage: React.FC = () => {
     );
 
     if (response.data !== null && response.data.length > 0) {
-      // Pegando os dados da primeira posição do array
       const {
         namePatient,
         street,
@@ -377,8 +392,6 @@ const DocumentsDoctorPage: React.FC = () => {
         registryNumber,
       } = response.data[0];
 
-      // Iterar sobre os medicamentos (description, quantity, dosage, observation)
-      // A partir de todos os itens no array de 'response.data'
       const itemsText = response.data
         .map(
           (item, index) => `
@@ -390,7 +403,6 @@ const DocumentsDoctorPage: React.FC = () => {
         )
         .join("\n\n");
 
-      // Gerando o texto completo da prescrição
       const prescriptionText = generatePrescription(
         namePatient,
         street,
@@ -401,7 +413,7 @@ const DocumentsDoctorPage: React.FC = () => {
         date,
         nameDoctor,
         registryNumber,
-        itemsText // Passa os medicamentos processados como texto
+        itemsText
       );
 
       downloadAndOpenDocument(prescriptionText, "receita-medica-medico.doc");
@@ -423,7 +435,7 @@ const DocumentsDoctorPage: React.FC = () => {
             await apiDelete(`/Prescription/${selectedDocument.id}`);
             break;
           default:
-            setMessageModal("Selecione alguma fatura válida para pagamento.");
+            setMessageModal(SELECT_INVOICE_VALID);
             setErrorModalVisible(true);
             break;
         }
@@ -438,35 +450,105 @@ const DocumentsDoctorPage: React.FC = () => {
         setDocuments(updatedDocuments);
 
         if (updatedDocuments.length > 0) {
-          // Se houver itens restantes, selecione o próximo item
           const nextIndex =
             (documents.findIndex((c) => c.id === selectedDocument.id) + 1) %
             updatedDocuments.length;
           setSelectedDocument(updatedDocuments[nextIndex]);
         } else {
-          // Se não houver itens restantes, desmarque a seleção
           setSelectedDocument(null);
         }
 
         getDocuments();
         setResetSelection(true);
       } catch (error) {
-        setMessageModal("Erro ao deletar consulta");
+        setMessageModal(ERROR_APPOINTMENT_DELETE);
         setErrorModalVisible(true);
       }
     } else {
-      setMessageModal("Nenhuma consulta selecionada para deletar");
+      setMessageModal(ANY_APPOINTMENT_DELETE);
       setErrorModalVisible(true);
     }
   };
 
   useEffect(() => {
     getDocuments();
+    getPatients();
   }, []);
 
   useEffect(() => {
-    //    setDocumentId(selectedDocument.id);
-  }, [document]);
+    const loadPatients = async () => {
+      try {
+        if (patientId !== null && patientId !== 0) {
+          const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
+          if (value) {
+            const doctor: Doctor = JSON.parse(value);
+            const response = await apiGet(`/Document/doctor/${doctor.id}`);
+            if (response && Array.isArray(response.data)) {
+              const formatDate = (dateString: string) => {
+                const date = new Date(dateString);
+                const options: Intl.DateTimeFormatOptions = {
+                  year: "numeric",
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                };
+                return date.toLocaleDateString("pt-BR", options);
+              };
+
+              const formattedDocuments = response.data.map((item: any) => ({
+                id: item.id,
+                data: `${formatDate(item.date)} - ${item.name}`,
+                type: item.type,
+              }));
+
+              setDocuments(formattedDocuments);
+            }
+          } else {
+            setMessageModal(FAIL_STORAGE_DOCTOR);
+            setErrorModalVisible(true);
+          }
+        } else {
+          getPatients();
+          if (selectedDocument === null) {
+            handleSelectDocument;
+          }
+        }
+      } catch {
+        setMessageModal(ERROR_GET_PATIENTS);
+        setErrorModalVisible(true);
+      }
+    };
+    loadPatients();
+  }, [patientId]);
+
+  const getPatients = async () => {
+    try {
+      const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
+      if (value) {
+        const doctor: Doctor = JSON.parse(value);
+        const responsePatients = await apiGet(
+          `/Appointment/patients/doctor/${doctor.id}`
+        );
+        if (responsePatients && Array.isArray(responsePatients.data)) {
+          const formattedPatients = responsePatients.data.map(
+            (patient: { id: number; name: string }) => ({
+              id: patient.id,
+              label: patient.name,
+              comparativeId: patient.id,
+            })
+          );
+          setPatients(formattedPatients);
+        }
+      } else {
+        setMessageModal(FAIL_STORAGE_DOCTOR);
+        setErrorModalVisible(true);
+      }
+    } catch (error) {
+      setMessageModal(ERROR_GET_APPOINTMENTS);
+      setErrorModalVisible(true);
+    }
+  };
 
   const handleCreateDocument = () => {
     router.replace("/home-doctor/document-choose-create");
@@ -494,6 +576,19 @@ const DocumentsDoctorPage: React.FC = () => {
               <CardIcon {...i} />
             </React.Fragment>
           ))}
+          <ComboBox
+            label="Paciente"
+            data={patients}
+            onSelect={(selectedPatient) => {
+              setPatient({
+                id: selectedPatient.id,
+                description: selectedPatient.label,
+              });
+              setPatientId(selectedPatient.id);
+            }}
+            placeholder="Escolha o paciente"
+            value={patient ? patient.description : ""}
+          />
           <WaitingListPageDocument
             onSelect={handleSelectDocument}
             consultations={documents}

@@ -22,6 +22,12 @@ import DateTimePickerModal from "react-native-modal-datetime-picker"; // Importa
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_CREDENTIALS, STORAGE_USER } from "../../constants/storage";
 import { Credentials } from "../../domain/Credentials/credentials";
+import {
+  ERROR_CPF,
+  ERROR_PHONE,
+  ERROR_USER_REGISTER,
+  FAIL_DATA,
+} from "../../utils/messages";
 
 const RegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -39,6 +45,7 @@ const RegistryPage: React.FC = () => {
   const [credentialsId, setCredentialsId] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [message, setMessage] = useState("");
 
   const handleBackPress = () => {
     router.back();
@@ -65,6 +72,7 @@ const RegistryPage: React.FC = () => {
         () => router.push("/register/address-registry")
       );
     } catch (err: any) {
+      setMessage(ERROR_USER_REGISTER);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -97,9 +105,10 @@ const RegistryPage: React.FC = () => {
       gender.trim() &&
       language.trim()
     ) {
-      await sendToBackend(); // Envia os dados para o backend antes de redirecionar
+      await sendToBackend();
     } else {
-      setErrorModalVisible(true); // Exibe o modal de erro se algum campo não estiver preenchido
+      setMessage(FAIL_DATA);
+      setErrorModalVisible(true);
     }
   }
 
@@ -169,13 +178,11 @@ const RegistryPage: React.FC = () => {
     value: string,
     setTime: React.Dispatch<React.SetStateAction<string>>
   ) => {
-    // Valida o CPF
     if (validateCPF(value)) {
-      // Se for válido, formata o CPF
       const formattedCPF = formatCPF(value);
       setCpf(formattedCPF);
     } else {
-      // Se for inválido, pode exibir uma mensagem de erro ou limpar o campo
+      setMessage(ERROR_CPF);
       setErrorModalVisible(true);
       setCpf("");
     }
@@ -210,11 +217,11 @@ const RegistryPage: React.FC = () => {
     value: string,
     setTime: React.Dispatch<React.SetStateAction<string>>
   ) => {
-    // Valida o telefone
     if (validatePhone(value)) {
       const formattedPhone = formatPhone(value);
       setPhone(formattedPhone);
     } else {
+      setMessage(ERROR_PHONE);
       setErrorModalVisible(true);
       setPhone("");
     }
@@ -349,7 +356,7 @@ const RegistryPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Algum campo não foi preenchido, ou foi preenchido de maneira incorreta."
+        message={message}
       />
     </SafeAreaView>
   );

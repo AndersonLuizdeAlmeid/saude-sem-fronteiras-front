@@ -2,7 +2,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosResponse } from "axios";
 import { STORAGE_TOKEN } from "../constants/storage";
 
-// Substitua '<seu-nome-do-serviço>' pela URL real do seu serviço no Render
 const BASE_URL = "http://192.168.0.103:5000";
 //const BASE_URL = "https://Saude-sem-Fronteiras-3.onrender.com"; dev...
 

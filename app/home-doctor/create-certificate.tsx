@@ -8,7 +8,6 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import ComboBox from "../../components/ComboBox"; // Atualize o caminho conforme necessário
 import { router } from "expo-router";
 import SelectionModal from "../../components/CustomModal";
 import Button from "../../components/Button";
@@ -22,13 +21,18 @@ import { STORAGE_APPOINTMENT } from "../../constants/storage";
 import { Appointment } from "../../domain/Appointment/appointment";
 import Input from "../../components/Input";
 import { Certificate } from "../../domain/Certificate/certificate";
+import {
+  CID_NUMBER,
+  CREATE_CERTIFICATE,
+  ERROR_CREATE_DOCUMENT,
+  ERROR_PASSWORD_CREATE,
+} from "../../utils/messages";
 
 const CreateCertificatePage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
   const [isErrorModalVisible, setErrorModalVisible] = useState(false);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [date, setDate] = useState<string>("");
-  const [patientId, setPatientId] = useState<number>(0);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -66,45 +70,48 @@ const CreateCertificatePage: React.FC = () => {
     const value = await AsyncStorage.getItem(STORAGE_APPOINTMENT);
 
     if (value) {
-      const typeDocument = 1;
-      const dateTime = getCurrentDateTime();
-      const appointment: Appointment = JSON.parse(value);
-      const appointmentId = appointment.id;
-      console.log(typeDocument);
-      await apiPost("/Document", {
-        typeDocument,
-        dateDocument: dateTime,
-        appointmentId,
-      });
-
-      const documentResponse = await apiGet<number>(
-        `/Document/last/${appointmentId}`
-      );
-      console.log(documentResponse.data);
-      if (documentResponse.data !== null) {
-        const documentId = documentResponse.data;
-        await apiPost("/Certificate", {
-          name: namePatient,
-          cpf: cpfPatient,
-          days,
-          cid,
-          documentId,
+      if (cid && !isNaN(cid as any)) {
+        const typeDocument = 1;
+        const dateTime = getCurrentDateTime();
+        const appointment: Appointment = JSON.parse(value);
+        const appointmentId = appointment.id;
+        await apiPost("/Document", {
+          typeDocument,
+          dateDocument: dateTime,
+          appointmentId,
         });
-        console.log("KKKKKKKKKKKKKK");
 
-        const responseCertificate = await apiGet<Certificate>(
-          `/Certificate/document/${documentId}`
+        const documentResponse = await apiGet<number>(
+          `/Document/last/${appointmentId}`
         );
-        if (responseCertificate.data !== null) {
-          setStart(1);
-          setMessageModal("Atestado Criado com sucesso.");
-          setErrorModalVisible(true);
+        console.log(documentResponse.data);
+        if (documentResponse.data !== null) {
+          const documentId = documentResponse.data;
+          await apiPost("/Certificate", {
+            name: namePatient,
+            cpf: cpfPatient,
+            days,
+            cid,
+            documentId,
+          });
+
+          const responseCertificate = await apiGet<Certificate>(
+            `/Certificate/document/${documentId}`
+          );
+          if (responseCertificate.data !== null) {
+            setStart(1);
+            setMessageModal(CREATE_CERTIFICATE);
+            setErrorModalVisible(true);
+          } else {
+            setMessageModal(ERROR_CREATE_DOCUMENT);
+            setErrorModalVisible(true);
+          }
         } else {
-          setMessageModal("Erro ao gerar documento.");
+          setMessageModal(ERROR_PASSWORD_CREATE);
           setErrorModalVisible(true);
         }
       } else {
-        setMessageModal("Erro ao pegar documento.");
+        setMessageModal(CID_NUMBER);
         setErrorModalVisible(true);
       }
     }

@@ -22,6 +22,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiGet, apiPost } from "../../utils/api";
 import SimpleModal from "../../components/Modal";
 import { Doctor } from "../../domain/Doctor/doctor";
+import { FAIL_DOCTOR } from "../../utils/messages";
 
 const daysOfWeek = [
   { id: 0, label: "D", value: "Sunday" },
@@ -47,6 +48,7 @@ const DoctorRegistryPage: React.FC = () => {
   const [userId, setUserId] = useState<number>(0);
   const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string>("");
 
   const handleBackPress = () => {
     router.back();
@@ -72,6 +74,7 @@ const DoctorRegistryPage: React.FC = () => {
         () => router.push("/register/doctor-speciality")
       );
     } catch (err: any) {
+      setMessage(FAIL_DOCTOR);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -198,8 +201,8 @@ const DoctorRegistryPage: React.FC = () => {
                 autoCorrect={false}
                 placeholder="18:00"
                 value={initialHour}
-                onChangeText={setInitialHour} // Permite que o usuário insira o valor sem formatação
-                onBlur={() => handleTimeInput(initialHour, setInitialHour)} // Formatação quando o campo perde o foco
+                onChangeText={setInitialHour}
+                onBlur={() => handleTimeInput(initialHour, setInitialHour)}
                 style={styles.input}
               />
               <Input
@@ -207,8 +210,8 @@ const DoctorRegistryPage: React.FC = () => {
                 autoCorrect={false}
                 placeholder="06:00"
                 value={finalHour}
-                onChangeText={setFinalHour} // Permite que o usuário insira o valor sem formatação
-                onBlur={() => handleTimeInput(finalHour, setFinalHour)} // Formatação quando o campo perde o foco
+                onChangeText={setFinalHour}
+                onBlur={() => handleTimeInput(finalHour, setFinalHour)}
                 style={styles.input}
               />
               <View style={styles.daysOfWeekContainer}>
@@ -256,7 +259,7 @@ const DoctorRegistryPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Por favor, preencha todos os campos."
+        message={message}
       />
     </SafeAreaView>
   );

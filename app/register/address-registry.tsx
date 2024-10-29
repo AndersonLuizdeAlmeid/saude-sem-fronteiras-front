@@ -15,13 +15,22 @@ import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import SimpleModal from "../../components/Modal";
-import { useLocalSearchParams } from "expo-router";
 import ComboBox from "../../components/ComboBox";
 import { apiGet, apiPost } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_CREDENTIALS, STORAGE_USER } from "../../constants/storage";
-import * as credentials from "../../domain/Credentials/credentials";
+import { STORAGE_USER } from "../../constants/storage";
 import { User } from "../../domain/User/user";
+import {
+  ERROR_CITIES,
+  ERROR_COUNTRIES,
+  ERROR_STATES,
+  ERROR_USER,
+  FAIL_ADDRESS,
+  FAIL_CITIES,
+  FAIL_COUNTRIES,
+  FAIL_STATES,
+  FAIL_USER,
+} from "../../utils/messages";
 
 const AddressRegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -29,7 +38,7 @@ const AddressRegistryPage: React.FC = () => {
   const [userId, setUserId] = useState<number>(0);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
-  const { cpf } = useLocalSearchParams();
+  const [message, setMessage] = useState("");
   const [country, setCountry] = useState<{
     id: number;
     description: string;
@@ -99,6 +108,7 @@ const AddressRegistryPage: React.FC = () => {
         pathname: "/register/doctor-patient-register",
       });
     } catch (err: any) {
+      setMessage(FAIL_ADDRESS);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -113,15 +123,15 @@ const AddressRegistryPage: React.FC = () => {
           const user: User = JSON.parse(value);
           setUserId(user.id);
         } else {
-          console.log("Nenhum valor encontrado no AsyncStorage");
+          setMessage(FAIL_USER);
+          setErrorModalVisible(true);
         }
       } catch (error) {
-        console.error("Erro ao recuperar ou parsear do AsyncStorage:", error);
+        setMessage(ERROR_USER);
+        setErrorModalVisible(true);
       }
     };
-
     fetchUser();
-    console.log(userId);
   }, []);
 
   useEffect(() => {
@@ -141,9 +151,11 @@ const AddressRegistryPage: React.FC = () => {
           setCountries(formattedCountries);
         } else {
           setCountries([]);
+          setMessage(FAIL_COUNTRIES);
           setErrorModalVisible(true);
         }
       } catch (err: any) {
+        setMessage(ERROR_COUNTRIES);
         setErrorModalVisible(true);
       } finally {
         setLoading(false);
@@ -174,9 +186,11 @@ const AddressRegistryPage: React.FC = () => {
           setAllStates(formattedStates);
         } else {
           setAllStates([]);
+          setMessage(FAIL_STATES);
           setErrorModalVisible(true);
         }
       } catch (err: any) {
+        setMessage(ERROR_STATES);
         setErrorModalVisible(true);
       } finally {
         setLoading(false);
@@ -202,9 +216,11 @@ const AddressRegistryPage: React.FC = () => {
           setAllCities(formattedCities);
         } else {
           setAllCities([]);
+          setMessage(FAIL_CITIES);
           setErrorModalVisible(true);
         }
       } catch (err: any) {
+        setMessage(ERROR_CITIES);
         setErrorModalVisible(true);
       } finally {
         setLoading(false);
@@ -360,7 +376,7 @@ const AddressRegistryPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Por favor, preencha todos os campos."
+        message={message}
       />
     </SafeAreaView>
   );

@@ -14,6 +14,16 @@ import { STORAGE_DOCTOR, STORAGE_USER } from "../../constants/storage";
 import { User } from "../../domain/User/user";
 import SelectionModal from "../../components/CustomModal";
 import { Doctor } from "../../domain/Doctor/doctor";
+import SimpleModal from "../../components/Modal";
+import {
+  ERROR_DELETE_SPECIALITY,
+  ERROR_USER,
+  FAIL,
+  FAIL_DELETE_SPECIALITY,
+  FAIL_SPECIALITY,
+  FAIL_STORAGE_DOCTOR,
+  FAIL_USER,
+} from "../../utils/messages";
 
 const SpecialitiesRegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -23,6 +33,7 @@ const SpecialitiesRegistryPage: React.FC = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
+  const [message, setMessage] = useState("");
   const [description, setDescription] = useState("");
   const [userId, setUserId] = useState<number>(0);
   const [doctorId, setDoctorId] = useState<number>(0);
@@ -48,7 +59,6 @@ const SpecialitiesRegistryPage: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
-    console.log(userId);
   }, []);
 
   const handleAuxiliaryModalPress = () => {
@@ -76,10 +86,12 @@ const SpecialitiesRegistryPage: React.FC = () => {
           const user: User = JSON.parse(value);
           setUserId(user.id);
         } else {
-          console.log("Nenhum valor enconatrado no AsyncStorage");
+          setMessage(ERROR_USER);
+          setErrorModalVisible(true);
         }
       } catch (error) {
-        console.error("Erro ao recuperar ou parsear do AsyncStorage:", error);
+        setMessage(FAIL_USER);
+        setErrorModalVisible(true);
       }
     };
 
@@ -90,10 +102,8 @@ const SpecialitiesRegistryPage: React.FC = () => {
     try {
       const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
       if (value) {
-        console.log("valuea");
         const doctor: Doctor = JSON.parse(value);
-        console.log("Doctor recuperado:", doctor); // Adicione isso para verificar o valor
-        setDoctorId(doctor.id); // Certifique-se de que este valor está correto
+        setDoctorId(doctor.id);
         const response = await apiGet(`/Speciality/${doctor.id}`);
         if (response && Array.isArray(response.data)) {
           const formattedConsultations = response.data.map((item: any) => ({
@@ -103,13 +113,16 @@ const SpecialitiesRegistryPage: React.FC = () => {
           }));
           setConsultations(formattedConsultations);
         } else {
-          console.error("Formato de resposta inespserado:", response);
+          setMessage(FAIL);
+          setErrorModalVisible(true);
         }
       } else {
-        console.log("Nenhum valor encontrado no AsyncStorage");
+        setMessage(FAIL_STORAGE_DOCTOR);
+        setErrorModalVisible(true);
       }
     } catch (error) {
-      console.error("Erro ao buscar especialidades:", error);
+      setMessage(FAIL_SPECIALITY);
+      setErrorModalVisible(true);
     }
   };
 
@@ -136,24 +149,25 @@ const SpecialitiesRegistryPage: React.FC = () => {
 
         getSpecialitiesByDoctorId(); // Atualiza a lista de telefones
       } catch (error) {
-        console.error("Erro ao delsetar consulta:", error);
+        setMessage(ERROR_DELETE_SPECIALITY);
+        setErrorModalVisible(true);
       }
     } else {
-      console.log("Nenhuma consulta selecionada para deletar");
+      setMessage(FAIL_DELETE_SPECIALITY);
+      setErrorModalVisible(true);
     }
   };
 
   const handleSavetShift = async () => {
     if (description.trim()) {
-      console.log(doctorId);
       await apiPost("/Speciality", {
         description,
         doctorId,
       });
-      console.log("doctorId");
       getSpecialitiesByDoctorId();
       setDescription(" ");
     } else {
+      setMessage(FAIL_SPECIALITY);
       setErrorModalVisible(true);
     }
   };
@@ -229,6 +243,11 @@ const SpecialitiesRegistryPage: React.FC = () => {
         visible={isModalVisible}
         onClose={handleCloseModal}
         onSelect={handleSelectLabels}
+      />
+      <SimpleModal
+        visible={isErrorModalVisible}
+        onClose={() => setErrorModalVisible(false)}
+        message={message}
       />
     </SafeAreaView>
   );

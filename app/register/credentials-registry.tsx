@@ -15,11 +15,16 @@ import Button from "../../components/Button";
 import HeaderPage from "../../components/HeaderPage";
 import SelectionModal from "../../components/CustomModal";
 import SimpleModal from "../../components/Modal";
-import { useLocalSearchParams } from "expo-router";
 import { apiGet, apiPost } from "../../utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { STORAGE_CREDENTIALS, STORAGE_USER } from "../../constants/storage";
 import { Credentials } from "../../domain/Credentials/credentials";
+import {
+  ERROR_CREDENTIALS,
+  FAIL_CREDENTIALS,
+  PASSWORD_INCORRECT,
+} from "../../utils/messages";
+import InputPassword from "../../components/Input/inputPassword";
 
 const CredentialsRegistryPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -27,6 +32,7 @@ const CredentialsRegistryPage: React.FC = () => {
   const [offset] = useState(new Animated.ValueXY({ x: 0, y: 95 }));
   const [opacity] = useState(new Animated.Value(0));
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -51,25 +57,21 @@ const CredentialsRegistryPage: React.FC = () => {
     try {
       if (password === passwordConfirmation) {
         setLoading(true);
-        console.log(password);
-        console.log(passwordConfirmation);
         await apiPost("/Credentials", { email, password });
-        console.log(password);
-        console.log(passwordConfirmation);
 
         const response = await apiGet<Credentials>(
           `/Credentials/${email}/${password}`
         );
-        console.log(response);
         AsyncStorage.setItem(
           STORAGE_CREDENTIALS,
           JSON.stringify(response.data)
         ).then(() => router.push("/register"));
       } else {
+        setMessage(PASSWORD_INCORRECT);
         setErrorModalVisible(true);
       }
     } catch (err: any) {
-      console.log("kkkkkkkkkkkkkk");
+      setMessage(ERROR_CREDENTIALS);
       setErrorModalVisible(true);
     } finally {
       setLoading(false);
@@ -80,7 +82,8 @@ const CredentialsRegistryPage: React.FC = () => {
     try {
       AsyncStorage.removeItem(STORAGE_USER);
     } catch (error) {
-      console.error("Erro ao remover o ID do usuário:", error);
+      setMessage(FAIL_CREDENTIALS);
+      setErrorModalVisible(true);
     }
   });
 
@@ -128,23 +131,29 @@ const CredentialsRegistryPage: React.FC = () => {
                 onChangeText={(value) => setEmail(value)}
                 style={styles.input}
               />
-              <Input
+              <InputPassword
                 label="Senha"
+                placeholder="*****"
                 autoCorrect={false}
-                placeholder="********"
-                secureTextEntry
                 value={password}
-                onChangeText={(value) => setPassword(value)}
-                style={styles.input}
-              />
-              <Input
-                label="Confirmação de senha"
-                autoCorrect={false}
-                placeholder="********"
+                onChangeText={(value) => {
+                  setPassword(value);
+                }}
+                textContentType="password"
                 secureTextEntry
+                isPassword={true}
+              />
+              <InputPassword
+                label="Confirmação de senha"
+                placeholder="*****"
+                autoCorrect={false}
                 value={passwordConfirmation}
-                onChangeText={(value) => setPasswordConfirmation(value)}
-                style={styles.input}
+                onChangeText={(value) => {
+                  setPasswordConfirmation(value);
+                }}
+                textContentType="password"
+                secureTextEntry
+                isPassword={true}
               />
               <Button onPress={handleRegistry} style={styles.button}>
                 PRÓXIMO
@@ -161,7 +170,7 @@ const CredentialsRegistryPage: React.FC = () => {
       <SimpleModal
         visible={isErrorModalVisible}
         onClose={() => setErrorModalVisible(false)}
-        message="Senhas não estão iguais."
+        message={message}
       />
     </SafeAreaView>
   );
