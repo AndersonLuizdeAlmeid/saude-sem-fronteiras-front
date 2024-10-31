@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   consultationItem: {
     padding: 15,
     borderRadius: 5,
-    borderColor: colors.white,
+    borderColor: colors.black,
     borderWidth: 2,
     flexDirection: "row",
     alignItems: "center",

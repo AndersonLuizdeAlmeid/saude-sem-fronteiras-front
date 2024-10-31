@@ -519,9 +519,6 @@ const DocumentsPatientPage: React.FC = () => {
           <Button onPress={handleDownloadShift} style={styles.button}>
             BAIXAR
           </Button>
-          <Button onPress={handleDeletetShift} style={styles.button}>
-            EXCLUIR
-          </Button>
         </View>
       </View>
       <SelectionModal
@@ -548,13 +545,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonContainer: {
-    flexDirection: "row", // Alinha os botões em linha
-    justifyContent: "space-around", // Espaça os botões uniformemente
-    marginTop: 10, // Adiciona margem acima se necessário
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 10,
   },
   button: {
-    marginHorizontal: 5, // Adiciona margem horizontal entre os botões
-    flex: 1, // Faz com que os botões ocupem espaço igual
+    marginHorizontal: 5,
+    flex: 1,
   },
   buttonPrincipal: {
     marginTop: 5,

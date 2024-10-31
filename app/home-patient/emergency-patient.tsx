@@ -19,8 +19,17 @@ import {
   ERROR_APPOINTMENT_DELETE,
   STATUS_SCHEDULED_INVALID,
 } from "../../utils/messages";
+import IconButton from "../../components/Button/iconButton";
+import ComboBox from "../../components/ComboBox";
 
 const EmergencyPatientPage: React.FC = () => {
+  const predefinedTypes = [
+    { id: 1, label: "Aguardando", comparativeId: 101 },
+    { id: 2, label: "Confirmado", comparativeId: 102 },
+    { id: 3, label: "Cancelado", comparativeId: 103 },
+    { id: 4, label: "Finalizado", comparativeId: 104 },
+  ];
+
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
   const [resetSelection, setResetSelection] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -28,14 +37,21 @@ const EmergencyPatientPage: React.FC = () => {
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [messageModal, setMessageModal] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [date, setDate] = useState<Date>();
   const [consultations, setConsultations] = useState<
     { id: number; data: string; status: number }[]
   >([]);
-  const [consultation, setConsultation] = useState<{
+
+  const [appointments, setAppointments] =
+    useState<{ id: number; label: string; comparativeId: number }[]>(
+      predefinedTypes
+    );
+  const [appointment, setAppointment] = useState<{
     id: number;
     description: string;
-  } | null>(null);
+  }>({
+    id: 1,
+    description: "Aguardando",
+  });
 
   const handleBackPress = () => {
     router.back();
@@ -58,12 +74,28 @@ const EmergencyPatientPage: React.FC = () => {
     console.log("Labels selecionadas:", labels);
   };
 
+  useEffect(() => {
+    setSelectedConsultation(null);
+    getAppointments();
+  }, [appointment]);
+
+  const resetAppointmentSelection = () => {
+    setResetSelection(true);
+  };
+
+  useEffect(() => {
+    if (resetSelection) {
+      resetAppointmentSelection();
+      setResetSelection(false);
+    }
+  }, [resetSelection]);
+
   const getAppointments = async () => {
     try {
+      resetAppointmentSelection();
       const value = await AsyncStorage.getItem(STORAGE_PATIENT);
       if (value) {
-        console.log(value);
-        const patient: Patient = JSON.parse(value);
+        const patient = JSON.parse(value);
         const response = await apiGet(`/Emergency/patient/list/${patient.id}`);
         if (response && Array.isArray(response.data)) {
           const formatDate = (dateString: string) => {
@@ -85,15 +117,17 @@ const EmergencyPatientPage: React.FC = () => {
             });
           };
 
-          const formattedConsultations = response.data.map((item: any) => ({
-            id: item.id,
-            data: `${formatDate(item.date)} - Preço: ${formatPrice(
-              item.price
-            )}`, // Concatena a data com o preço
-            status: item.status,
-          }));
+          const filteredConsultations = response.data
+            .filter((item) => item.status === appointment?.id) // Filtra conforme o `appointmentId` selecionado
+            .map((item) => ({
+              id: item.id,
+              data: `${formatDate(item.date)} - Preço: ${formatPrice(
+                item.price
+              )}`,
+              status: item.status,
+            }));
 
-          setConsultations(formattedConsultations);
+          setConsultations(filteredConsultations);
         } else {
           console.log("Nenhum valor encontrado no AsyncStorage");
         }
@@ -149,7 +183,6 @@ const EmergencyPatientPage: React.FC = () => {
           setConsultations(updatedConsultations);
 
           if (updatedConsultations.length > 0) {
-            // Se houver itens restantes, selecione o próximo item
             const nextIndex =
               (consultations.findIndex(
                 (c) => c.id === selectedConsultation.id
@@ -158,7 +191,6 @@ const EmergencyPatientPage: React.FC = () => {
               updatedConsultations.length;
             setSelectedConsultation(updatedConsultations[nextIndex]);
           } else {
-            // Se não houver itens restantes, desmarque a seleção
             setSelectedConsultation(null);
           }
 
@@ -184,6 +216,8 @@ const EmergencyPatientPage: React.FC = () => {
   useEffect(() => {
     getAppointments();
   }, []);
+
+  useEffect(() => {}, [appointment]);
 
   const handleStartShift = async () => {
     router.replace("/home-patient/screenings-patient");
@@ -211,6 +245,18 @@ const EmergencyPatientPage: React.FC = () => {
               <CardIcon {...i} />
             </React.Fragment>
           ))}
+          <ComboBox
+            label="Status"
+            data={appointments}
+            onSelect={(selectedAppointment) => {
+              setAppointment({
+                id: selectedAppointment.id,
+                description: selectedAppointment.label,
+              });
+            }}
+            placeholder="Escolha o Status"
+            value={appointment ? appointment.description : ""}
+          />
           <WaitingListPage
             onSelect={handleSelectConsultation}
             consultations={consultations}
@@ -251,6 +297,22 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 20,
     width: 250,
+  },
+  buttonPrincipal: {
+    marginTop: 5,
+    width: 90,
+  },
+  filterContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    maxWidth: 150,
+    marginBottom: 10,
+    paddingHorizontal: 15,
+  },
+  activeButton: {
+    margin: 5,
+    backgroundColor: colors.gray_1,
   },
 });
 

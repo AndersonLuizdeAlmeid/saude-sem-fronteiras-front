@@ -26,6 +26,7 @@ import {
   ERROR_CREATE_DOCUMENT,
   ERROR_GET_DOCUMENT,
 } from "../../utils/messages";
+import { ExamShow } from "../../domain/Exam/examShow";
 
 const CreateExamPage: React.FC = () => {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -85,7 +86,6 @@ const CreateExamPage: React.FC = () => {
       const documentResponse = await apiGet<number>(
         `/Document/last/${appointmentId}`
       );
-      console.log(documentResponse.data);
       if (documentResponse.data !== null) {
         const documentId = documentResponse.data;
         await apiPost("/Exam", {
@@ -95,18 +95,9 @@ const CreateExamPage: React.FC = () => {
           documentId,
         });
 
-        const responseCertificate = await apiGet<Exam>(
-          `/Exam/document/${documentId}`
-        );
-        if (responseCertificate.data !== null) {
-          setStart(1);
-          setMessageModal(CREATE_EXAM);
-          setErrorModalVisible(true);
-        } else {
-          setMessageModal(ERROR_CREATE_DOCUMENT);
-          setErrorModalVisible(true);
-          setLoading(false);
-        }
+        setStart(1);
+        setMessageModal(CREATE_EXAM);
+        setErrorModalVisible(true);
       } else {
         setMessageModal(ERROR_GET_DOCUMENT);
         setErrorModalVisible(true);

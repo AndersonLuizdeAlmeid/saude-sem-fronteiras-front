@@ -30,8 +30,16 @@ import {
   STATUS_INCORRECT_CANCEL,
   STATUS_INCORRECT_FINISH,
 } from "../../utils/messages";
+import ComboBox from "../../components/ComboBox";
 
 const ScheduledAppointmentPage: React.FC = () => {
+  const predefinedTypes = [
+    { id: 1, label: "Aguardando", comparativeId: 101 },
+    { id: 2, label: "Confirmado", comparativeId: 102 },
+    { id: 3, label: "Cancelado", comparativeId: 103 },
+    { id: 4, label: "Finalizado", comparativeId: 104 },
+  ];
+
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
   const [resetSelection, setResetSelection] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -45,6 +53,17 @@ const ScheduledAppointmentPage: React.FC = () => {
     id: number;
     description: string;
   } | null>(null);
+  const [appointments, setAppointments] =
+    useState<{ id: number; label: string; comparativeId: number }[]>(
+      predefinedTypes
+    );
+  const [appointment, setAppointment] = useState<{
+    id: number;
+    description: string;
+  }>({
+    id: 1,
+    description: "Aguardando",
+  });
 
   const handleBackPress = () => {
     router.back();
@@ -73,6 +92,7 @@ const ScheduledAppointmentPage: React.FC = () => {
 
   const getAppointments = async () => {
     try {
+      resetAppointmentSelection();
       const value = await AsyncStorage.getItem(STORAGE_DOCTOR);
       if (value) {
         const doctor: Doctor = JSON.parse(value);
@@ -99,15 +119,17 @@ const ScheduledAppointmentPage: React.FC = () => {
             });
           };
 
-          const formattedConsultations = response.data.map((item: any) => ({
-            id: item.id,
-            data: `${formatDate(item.date)} - Preço: ${formatPrice(
-              item.price
-            )}`, // Concatena a data com o preço
-            status: item.status,
-          }));
+          const filteredConsultations = response.data
+            .filter((item) => item.status === appointment?.id)
+            .map((item) => ({
+              id: item.id,
+              data: `${formatDate(item.date)} - Preço: ${formatPrice(
+                item.price
+              )}`,
+              status: item.status,
+            }));
 
-          setConsultations(formattedConsultations);
+          setConsultations(filteredConsultations);
         } else {
           setMessageModal(FAIL_STORAGE_DOCTOR);
           setErrorModalVisible(true);
@@ -124,7 +146,6 @@ const ScheduledAppointmentPage: React.FC = () => {
 
   useEffect(() => {
     getAppointments();
-    setResetSelection(true);
   }, []);
 
   const handleStartShift = async () => {
@@ -278,10 +299,20 @@ const ScheduledAppointmentPage: React.FC = () => {
   };
 
   useEffect(() => {
+    setSelectedConsultation(null);
+    getAppointments();
+  }, [appointment]);
+
+  const resetAppointmentSelection = () => {
+    setResetSelection(true);
+  };
+
+  useEffect(() => {
     if (resetSelection) {
+      resetAppointmentSelection();
       setSelectedConsultation(null);
       setConsultation(null);
-      setResetSelection(false); // Reseta o controlador após o reset
+      setResetSelection(false);
     }
   }, [resetSelection]);
 
@@ -308,6 +339,18 @@ const ScheduledAppointmentPage: React.FC = () => {
               <CardIcon {...i} />
             </React.Fragment>
           ))}
+          <ComboBox
+            label="Status"
+            data={appointments}
+            onSelect={(selectedAppointment) => {
+              setAppointment({
+                id: selectedAppointment.id,
+                description: selectedAppointment.label,
+              });
+            }}
+            placeholder="Escolha o Status"
+            value={appointment ? appointment.description : ""}
+          />
           <WaitingListPage
             onSelect={handleSelectConsultation}
             consultations={consultations}

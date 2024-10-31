@@ -33,8 +33,16 @@ import {
   STATUS_INCORRECT_CANCEL,
   STATUS_INCORRECT_FINISH,
 } from "../../utils/messages";
+import ComboBox from "../../components/ComboBox";
 
 const EmergencyAppointmentPage: React.FC = () => {
+  const predefinedTypes = [
+    { id: 1, label: "Aguardando", comparativeId: 101 },
+    { id: 2, label: "Confirmado", comparativeId: 102 },
+    { id: 3, label: "Cancelado", comparativeId: 103 },
+    { id: 4, label: "Finalizado", comparativeId: 104 },
+  ];
+
   const [selectedConsultation, setSelectedConsultation] = useState<any>(null);
   const [resetSelection, setResetSelection] = useState(false);
   const [isModalVisible, setModalVisible] = useState(false);
@@ -51,6 +59,17 @@ const EmergencyAppointmentPage: React.FC = () => {
   const [filter, setFilter] = useState<number>(0);
   const [validation, setValidation] = useState<number>(0);
   const [start, setStart] = useState<number>(0);
+  const [appointments, setAppointments] =
+    useState<{ id: number; label: string; comparativeId: number }[]>(
+      predefinedTypes
+    );
+  const [appointment, setAppointment] = useState<{
+    id: number;
+    description: string;
+  }>({
+    id: 1,
+    description: "Aguardando",
+  });
 
   const handleBackPress = () => {
     router.back();
@@ -107,23 +126,25 @@ const EmergencyAppointmentPage: React.FC = () => {
             return date.toLocaleDateString("pt-BR", options);
           };
 
-          // Função para formatar o preço
           const formatPrice = (price: number) => {
             return price.toLocaleString("pt-BR", {
               style: "currency",
               currency: "BRL",
             });
           };
-          // Mapear os dados para a estrutura esperada com a data, preço e status formatados
-          const formattedConsultations = response.data.map((item: any) => ({
-            id: item.id,
-            data: `${formatDate(item.date)} - Preço: ${formatPrice(
-              item.price
-            )}`, // Concatena a data com o preço
-            status: item.status,
-            doctor: item.doctorId,
-          }));
-          setConsultations(formattedConsultations);
+
+          const filteredConsultations = response.data
+            .filter((item) => item.status === appointment?.id) // Filtra conforme o `appointmentId` selecionado
+            .map((item) => ({
+              id: item.id,
+              data: `${formatDate(item.date)} - Preço: ${formatPrice(
+                item.price
+              )}`,
+              status: item.status,
+              doctor: item.doctorId,
+            }));
+
+          setConsultations(filteredConsultations);
         } else {
           setMessageModal(ERROR_GET_VALUE_DOCTOR);
           setErrorModalVisible(true);
@@ -415,12 +436,28 @@ const EmergencyAppointmentPage: React.FC = () => {
   };
 
   useEffect(() => {
+    setSelectedConsultation(null);
+    getAppointments();
+  }, [appointment]);
+
+  const resetAppointmentSelection = () => {
+    setResetSelection(true);
+  };
+
+  useEffect(() => {
     if (resetSelection) {
+      resetAppointmentSelection();
       setSelectedConsultation(null);
       setConsultation(null);
       setResetSelection(false); // Reseta o controlador após o reset
     }
   }, [resetSelection]);
+
+  useEffect(() => {
+    getAppointments();
+  }, []);
+
+  useEffect(() => {}, [appointment]);
 
   const items = [
     {
@@ -465,6 +502,18 @@ const EmergencyAppointmentPage: React.FC = () => {
               <CardIcon {...i} />
             </React.Fragment>
           ))}
+          <ComboBox
+            label="Status"
+            data={appointments}
+            onSelect={(selectedAppointment) => {
+              setAppointment({
+                id: selectedAppointment.id,
+                description: selectedAppointment.label,
+              });
+            }}
+            placeholder="Escolha o Status"
+            value={appointment ? appointment.description : ""}
+          />
           <WaitingListPage
             onSelect={handleSelectConsultation}
             consultations={filterConsultations(consultations)}

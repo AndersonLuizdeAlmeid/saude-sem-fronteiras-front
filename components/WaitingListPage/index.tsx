@@ -27,7 +27,6 @@ const WaitingListPage: React.FC<{
     onSelect(item);
   };
 
-  // Função para determinar a cor com base no status
   const getBackgroundColorByStatus = (status: number) => {
     switch (status) {
       case 1:
@@ -43,35 +42,9 @@ const WaitingListPage: React.FC<{
     }
   };
 
-  const Legend = () => {
-    return (
-      <View style={styles.legendContainer}>
-        <View style={styles.legendItem}>
-          <View style={[styles.colorBox, { backgroundColor: "#3CB371" }]} />
-          <Text style={styles.legendText}>Confirmado</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.colorBox, { backgroundColor: "#F08080" }]} />
-          <Text style={styles.legendText}>Cancelado</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.colorBox, { backgroundColor: "#87CEFA" }]} />
-          <Text style={styles.legendText}>Finalizado</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.colorBox, { backgroundColor: colors.gray_2 }]} />
-          <Text style={styles.legendText}>Aguardando</Text>
-        </View>
-      </View>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        style={{ maxHeight: 320 }}
-      >
+      <ScrollView style={{ maxHeight: 320 }}>
         {consultations.map((item, index) => (
           <TouchableOpacity
             key={item.id}
@@ -86,7 +59,6 @@ const WaitingListPage: React.FC<{
           </TouchableOpacity>
         ))}
       </ScrollView>
-      <Legend />
     </SafeAreaView>
   );
 };
@@ -96,42 +68,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.black,
   },
-  content: {
-    paddingTop: -20,
-  },
   consultationItem: {
     padding: 15,
     borderRadius: 5,
-    borderColor: colors.white,
-    borderWidth: 2,
+    borderColor: colors.black,
+    borderWidth: 3,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     width: 320,
   },
   consultationText: {
-    color: colors.white,
+    color: colors.black,
     textAlign: "center",
     fontSize: 16,
-  },
-  legendContainer: {
-    flexDirection: "row", // Mantém os itens em linha
-    alignItems: "center", // Centraliza os itens na vertical
-    justifyContent: "center", // Centraliza os itens na horizontal
-    padding: 15,
-  },
-  legendItem: {
-    flexDirection: "column",
-    alignItems: "center",
-    marginHorizontal: 1, // Adiciona espaçamento horizontal entre os itens
-  },
-  colorBox: {
-    width: 20,
-    height: 20,
-    marginBottom: 5, // Espaço entre o box colorido e o texto
-  },
-  legendText: {
-    color: "#fff",
   },
 });
 
