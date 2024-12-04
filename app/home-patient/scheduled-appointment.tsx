@@ -232,7 +232,7 @@ const ScheduledAppointmentPage: React.FC = () => {
                 );
                 openWhatsApp(
                   formattedPhoneNumber,
-                  "Olá, sou o paciente e estou pronto para a consulta"
+                  "Olá, sou paciente e estou pronto para sua consulta."
                 );
                 router.replace("/home-patient");
               } else {
