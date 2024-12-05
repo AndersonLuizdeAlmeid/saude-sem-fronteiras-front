@@ -2,8 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios, { AxiosResponse } from "axios";
 import { STORAGE_TOKEN } from "../constants/storage";
 
-const BASE_URL = "http://192.168.0.103:5000";
-//const BASE_URL = "https://Saude-sem-Fronteiras-3.onrender.com"; dev...
+//const BASE_URL = "http://192.168.0.103:5000";
+const BASE_URL = "https://Saude-sem-Fronteiras-3.onrender.com"; dev...
 
 export async function apiGet<T>(url: string): Promise<AxiosResponse<T>> {
   const token = await AsyncStorage.getItem(STORAGE_TOKEN);
