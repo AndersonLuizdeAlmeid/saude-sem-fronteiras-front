@@ -30,3 +30,4 @@ jobs:
       - name: Enviar versão específica pro Docker Hub
         run: docker push andersonluizdealmeida1997/almeida-pinturas-frontend:${{ github.sha }}
  
+ 
